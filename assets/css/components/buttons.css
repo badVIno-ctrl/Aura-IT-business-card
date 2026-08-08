@@ -1,0 +1,154 @@
+/* Actions
+   ---------------------------------------------------------------------------
+   Every pressable thing on this page is the same object at a different size:
+   a gradient face inside a gradient rim, a highlight along the top edge, and a
+   pool of brand light thrown on the surface below it. It lifts toward the
+   cursor, one pass of light crosses it, and it settles back under a press.
+
+   This replaces the pushable "3D" buttons — a coloured face sitting on a
+   coloured edge that travelled down onto it. That gesture was loud, it was
+   plastic, and it forced every element that used it into a 3D transform
+   context, which in turn banned `filter`, `opacity` and `mask` on the whole
+   family. None of those restrictions apply here.
+
+   THREE THINGS WORTH KNOWING BEFORE EDITING
+
+   1. The rim is the border, painted by the second background layer:
+      `background: <face> padding-box, <rim> border-box` with a transparent
+      border. That is why the border must stay `solid transparent` — make it a
+      colour and it paints over the gradient it is supposed to reveal.
+   2. Two gradients cannot be interpolated, so a hover cannot transition the
+      face. ::before carries the lit face and only its *opacity* animates,
+      which is what makes the state change read as light rather than as a swap.
+   3. Both pseudo-elements sit at `z-index:-1`. Inside the button's own
+      stacking context that paints them above its background and below its
+      label — so the sheen crosses the face and never the words. */
+
+.btn{
+  position:relative;isolation:isolate;
+  display:inline-flex;align-items:center;justify-content:center;gap:10px;
+  font-family:var(--f-d);font-weight:700;font-size:14px;letter-spacing:.05em;
+  text-transform:uppercase;text-align:center;white-space:nowrap;
+  padding:1.05em 2.15em;border:1.5px solid transparent;border-radius:999px;
+  cursor:pointer;outline:none;overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform var(--t-f) var(--e-out),box-shadow var(--t-f) var(--e-out),
+             color var(--t-press) var(--e-out)}
+
+/* the lit face */
+.btn::before{content:"";position:absolute;z-index:-1;inset:0;
+  border-radius:inherit;opacity:0;transition:opacity var(--t-f) var(--e-out)}
+.btn:hover::before,.btn:focus-visible::before{opacity:1}
+
+/* one pass of light, on the way in only — a transition here would run the
+   highlight backwards out of the button when the cursor leaves */
+.btn::after{content:"";position:absolute;z-index:-1;inset:-1px;
+  border-radius:inherit;pointer-events:none;opacity:0;
+  transform:translateX(-130%) skewX(-16deg);
+  background:linear-gradient(90deg,
+    rgba(255,255,255,0) 32%,
+    rgba(255,255,255,.30) 50%,
+    rgba(255,255,255,0) 68%)}
+.btn:hover::after{animation:btnSheen .82s cubic-bezier(.3,0,.2,1)}
+@keyframes btnSheen{
+  0%  { opacity:0; transform:translateX(-130%) skewX(-16deg) }
+  18% { opacity:1 }
+  82% { opacity:1 }
+  100%{ opacity:0; transform:translateX(130%) skewX(-16deg) } }
+
+/* Toward the cursor on hover, back down under a press. The press is short and
+   the return is soft — never the other way round. */
+.btn:hover{transform:translateY(-2px)}
+.btn:active{transform:translateY(0) scale(.985);transition-duration:var(--t-press)}
+.btn[disabled],.btn[aria-disabled="true"]{opacity:.55;pointer-events:none}
+
+/* --- primary ------------------------------------------------------------- */
+.btn--p{color:#fff;
+  background:var(--btn-face) padding-box,var(--btn-rim) border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.45),
+    inset 0 -12px 22px -14px rgba(3,7,20,.8),
+    0 12px 28px -14px rgba(var(--btn-glow),.85),
+    0 3px 8px -5px rgba(3,7,20,.6)}
+.btn--p::before{background:var(--btn-face-h)}
+.btn--p:hover{box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.55),
+    inset 0 -12px 22px -14px rgba(3,7,20,.6),
+    0 20px 44px -16px rgba(var(--btn-glow),.95),
+    0 4px 10px -5px rgba(3,7,20,.5)}
+.btn--p:active{box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.3),
+    0 6px 16px -12px rgba(var(--btn-glow),.9)}
+.btn--p:focus-visible{box-shadow:var(--ring),0 14px 32px -16px rgba(var(--btn-glow),.9)}
+
+/* --- quiet — sits on the page surface rather than above it --------------- */
+.btn--g{color:var(--ink);
+  background:var(--btn-quiet) padding-box,var(--btn-quiet-rim) border-box;
+  box-shadow:
+    inset 0 1px 0 var(--gloss),
+    0 10px 26px -18px rgba(var(--sh),.9)}
+.btn--g::before{background:var(--btn-quiet-h)}
+/* The rim cannot be transitioned, so the halo just outside it is what lights
+   up: same reading, and it resolves smoothly. */
+.btn--g:hover{box-shadow:
+    inset 0 1px 0 var(--gloss-2),
+    0 0 0 1.5px color-mix(in srgb,var(--c-blue) 34%,transparent),
+    0 16px 34px -18px rgba(var(--sh),.9)}
+.btn--g:active{box-shadow:
+    inset 0 1px 0 var(--gloss),
+    0 0 0 1.5px color-mix(in srgb,var(--c-blue) 24%,transparent)}
+.btn--g:focus-visible{box-shadow:var(--ring)}
+
+/* --- on a dark surface --------------------------------------------------
+   The terminal bar and the project overlay are dark in either theme, so these
+   values are fixed on purpose and are the one place raw colour is allowed. */
+.btn--d{color:#EAF0FF;
+  background:linear-gradient(180deg,rgba(255,255,255,.15),rgba(255,255,255,.05)) padding-box,
+             linear-gradient(140deg,rgba(255,255,255,.44),rgba(255,255,255,.12)) border-box;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18)}
+.btn--d::before{background:linear-gradient(180deg,rgba(255,255,255,.26),rgba(255,255,255,.1))}
+.btn--d:hover{box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28),
+    0 0 0 1.5px rgba(255,255,255,.26),
+    0 12px 26px -16px rgba(0,0,0,.9)}
+.btn--d:active{box-shadow:inset 0 1px 0 rgba(255,255,255,.16)}
+.btn--d:focus-visible{box-shadow:0 0 0 3px rgba(255,255,255,.45)}
+
+/* --- size scale --------------------------------------------------------- */
+.btn--sm{font-size:12.5px;padding:.84em 1.6em}
+
+/* --- icon only ----------------------------------------------------------
+   Square-ish rather than a pill: at this size a pill reads as a pebble, and
+   the rounding echoes the panel it sits on instead of the actions. */
+.btn--i{width:33px;height:33px;flex:none;padding:0;gap:0;border-radius:11px}
+/* `flex:none` is the whole fix for a bug that made every icon button on a
+   phone render as an empty square.
+
+   An <svg> that carries a viewBox and no width/height attribute has no
+   intrinsic size, so its min-content contribution is zero. As a flex item with
+   the default `flex-shrink:1` and `min-width:auto`, that means flexbox is
+   allowed to take it all the way down to 0 the moment the line is even
+   marginally over-constrained - which is exactly what happens once
+   base/responsive.css tightens the button to 40px at narrow widths. The height
+   was still honoured, so the element was there, measurable and 0px wide:
+   nothing drawn, nothing to see, and no error anywhere to explain it.
+
+   Measured: 0x16 at 390px, 17x17 at 1280px, in the original build.
+
+   The icon is a fixed-size object, never a thing to be squeezed, so it says so. */
+.btn--i svg{display:block;flex:none;width:17px;height:17px}
+
+/* --- burger: the same object, square ------------------------------------ */
+.burger{display:none;position:relative;isolation:isolate;
+  width:44px;height:44px;flex:none;padding:0;border-radius:14px;
+  border:1.5px solid transparent;cursor:pointer;overflow:hidden;
+  background:var(--btn-quiet) padding-box,var(--btn-quiet-rim) border-box;
+  box-shadow:inset 0 1px 0 var(--gloss),0 8px 20px -16px rgba(var(--sh),.9);
+  transition:transform var(--t-f) var(--e-out),box-shadow var(--t-f) var(--e-out)}
+.burger::after{content:"";position:absolute;z-index:-1;inset:0;border-radius:inherit;
+  opacity:0;background:var(--btn-quiet-h);transition:opacity var(--t-f) var(--e-out)}
+.burger:hover::after{opacity:1}
+.burger:hover{box-shadow:inset 0 1px 0 var(--gloss-2),
+    0 0 0 1.5px color-mix(in srgb,var(--c-blue) 30%,transparent)}
+.burger:active{transform:scale(.96)}
+.burger:focus-visible{outline:none;box-shadow:var(--ring)}

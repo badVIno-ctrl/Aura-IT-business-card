@@ -1,0 +1,53 @@
+/* Lite profile — coarse-pointer / low-power devices
+   ---------------------------------------------------------------------------
+   `html.is-lite` is set by core/aura.js from pointer:coarse + viewport width;
+   `html.is-low` adds a weak CPU or <=4GB of memory on top of that.
+
+   Everything here is a cost swap, never a feature removal: each rule replaces
+   a per-frame raster operation with a static one that resolves to the same
+   reading at rest. The two offenders that matter on a phone are:
+
+   1. backdrop-filter — the compositor must re-sample and blur everything
+      behind the element on every frame it moves. On a sticky header that is
+      literally every scroll frame, over the full width of the screen.
+   2. wide box-shadow blurs — a 80px blur radius is a gaussian pass over an
+      area far larger than the element itself.
+
+   Every stand-in below is written with theme tokens, so the lite profile
+   follows the light/dark switch instead of freezing the page in one palette.
+   Keep this file last in the cascade before motion.css. */
+
+/* --- glass surfaces: opaque stand-ins matched to the blurred originals --- */
+/* The header's blur now lives on .head::before, which is also the layer that
+   fades in with the scroll — so the lite stand-in has to replace the blur while
+   leaving that fade alone. Opaque paper instead of glass, and a soft drop under
+   the bar to keep the separation the blur was providing. */
+html.is-lite .head::before{
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  background:var(--paper-2);
+  box-shadow:0 8px 20px rgba(var(--sh),.07)}
+html.is-lite .head.stuck::before{
+  background:var(--surf);
+  box-shadow:0 10px 24px rgba(var(--sh),.11)}
+
+/* The preview overlay blurs the whole viewport. It is also the one surface
+   that sits above a frozen page, so a darker scrim carries the same
+   separation without asking the GPU for a fullscreen blur. It stays dark in
+   both themes on purpose — a scrim is meant to remove the page. */
+html.is-lite .pv{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(8,12,26,.88)}
+html.is-lite .mb__shadow{filter:blur(5px)}
+
+/* --- shadow blur radii: same direction and depth, a third of the area --- */
+html.is-lite .term{
+  box-shadow:0 16px 30px -24px rgba(var(--sh),.9),0 2px 0 rgba(255,255,255,.05) inset}
+html.is-lite .form{box-shadow:0 16px 30px -30px rgba(var(--sh),.6)}
+html.is-lite .card:hover{box-shadow:0 14px 26px -22px rgba(var(--sh),.55)}
+
+/* The terminal is drawn in perspective. On a phone the rotation only costs
+   texture memory for a tilt that is a few pixels wide at that size. */
+html.is-lite .term{transform:none}
+
+/* --- lowest tier: drop the decorative depth entirely, keep the layout --- */
+html.is-low .term{box-shadow:0 10px 20px -18px rgba(var(--sh),.9)}
+html.is-low .form{box-shadow:none;border-color:var(--line)}
+html.is-low .mb__shadow{filter:none;opacity:.35}

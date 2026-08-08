@@ -1,0 +1,94 @@
+/* Motion layer
+   ---------------------------------------------------------------------------
+   Two jobs: define how interactive elements respond to touch/keyboard, and
+   honour a reduced-motion request. Rules here are last in the cascade, so they
+   are the final word on any transition timing.
+
+   Principles applied throughout:
+   - Nothing eases *in* on a state the user triggered. A press must leave
+     immediately and return softly, never the other way round.
+   - Anything the finger waits on resolves under 300ms; presses under 150ms.
+   - Only transform and opacity animate. Colour transitions are allowed because
+     they do not invalidate layout, but width/height/top/left never are. */
+
+/* --- press feedback -------------------------------------------------------
+   The 3D buttons already travel on their own shadow, so they are left alone.
+   Everything else that can be pressed gets a small, uniform compression. */
+.tab,.x,.f input,.f textarea{
+  transition:color var(--t-f) var(--e-out),
+             background var(--t-f) var(--e-out),
+             border-color var(--t-f) var(--e-out),
+             transform var(--t-press) var(--e-press),
+             box-shadow var(--t-f) var(--e-out)}
+.tab:active{transform:scale(.96)}
+
+/* Pressing a tab should feel like it caught, not like it faded in. The label
+   arrives fast and the background follows it. */
+.tab.on{transition-duration:var(--t-press)}
+
+/* --- keyboard focus -------------------------------------------------------
+   One ring, one colour, everywhere. Never removed without a replacement. */
+.tab:focus-visible,
+.logo:focus-visible,
+.nav a:focus-visible,
+.foot a:focus-visible,
+.contacts a:focus-visible{outline:none;box-shadow:var(--ring);border-radius:10px}
+/* One ring everywhere means the fields too. They used to answer a keyboard with
+   a one-pixel line under the caret — the same line a mouse click already draws,
+   at the same weight, which is no answer at all for anyone navigating by Tab. */
+.f input:focus-visible,.f textarea:focus-visible{box-shadow:var(--ring);border-radius:10px}
+/* A rejected field keeps the ring — it is still the focused thing — but in the
+   colour of the thing that is wrong with it. A blue ring around a red underline
+   reads as two different messages about the same field. */
+.f.bad input:focus-visible,.f.bad textarea:focus-visible{
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 38%,transparent)}
+
+/* --- form field: the label is the affordance ------------------------------
+   The underline draws from the side the caret enters on, which reads as the
+   field accepting input rather than merely changing colour. */
+.f{position:relative}
+.f::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;
+  background:linear-gradient(90deg,var(--c-blue),var(--c-violet));
+  transform:scaleX(0);transform-origin:0 50%;
+  transition:transform var(--t-f) var(--e-out),opacity var(--t-f) var(--e-out);
+  pointer-events:none}
+.f:focus-within::after{transform:scaleX(1)}
+/* A rejected field says so on the field itself, not only in the status line. */
+.f.bad::after{transform:scaleX(1);background:var(--danger)}
+.f.bad input,.f.bad textarea{border-bottom-color:var(--danger)}
+.f.bad label{color:var(--danger)}
+
+/* --- submit: the button owns its loading state ----------------------------
+   The spinner takes over the same pseudo-element the sheen uses, so every
+   property that belongs to the sheen has to be named again here — inset, the
+   background, the opacity, the transform and the stacking order. Leave any of
+   them out and the ring inherits a skewed, transparent, negatively stacked box
+   and never appears. */
+.btn[aria-busy="true"]{pointer-events:none;color:transparent}
+.btn[aria-busy="true"]::after{
+  content:"";position:absolute;z-index:1;inset:auto;
+  left:50%;top:50%;width:1.05em;height:1.05em;margin:-.525em 0 0 -.525em;
+  border:2px solid #fff;border-top-color:transparent;border-radius:50%;
+  background:none;opacity:1;transform:none;
+  animation:spin .62s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* --- reduced motion -------------------------------------------------------
+   Kill travel, keep state. Every rule above degrades to an instant change.
+
+   Nothing needs pinning back to a resting state any more. Entrances are no
+   longer declared in a stylesheet and waiting to be granted — the plate is
+   never armed and no character is ever assigned under a reduced-motion request,
+   so there is no hidden state in the cascade to undo. The blanket duration
+   override below is the safety net for anything that slips through. */
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important}
+  .f::after{transition:none}
+  html{scroll-behavior:auto}
+  /* Nothing types itself here, so the whole file is on the page from the first
+     frame — and a window that cannot be scrolled would show only its first
+     sixteen lines. terminal.js parks it at the top and leaves it alone. */
+  .term__body{overflow-y:auto}
+  .term__scroll{transform:none}
+}

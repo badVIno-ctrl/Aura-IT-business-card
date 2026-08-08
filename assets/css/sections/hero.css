@@ -1,0 +1,39 @@
+/* Hero
+
+   `--hero-bg` is a gradient, which is a background *image*. The shorthand left
+   background-color at transparent, so the hero had no opaque floor of its own:
+   anything that stopped that one gradient from painting — a UA darkening pass
+   that treats images as untouchable, a stale cached stylesheet, a raster
+   fallback — dropped straight through to whatever was behind, with no
+   guarantee it matched the theme. Declaring the colour and the image
+   separately gives the section a floor that is the page's own paper, so the
+   worst case is a flat light hero instead of a black one. */
+/* THE FLOOR THE SEAM IS HANDED. --hero-bg is a radial gradient centred at
+   78% 40%, so the hero's last row of pixels is not one colour: it runs from
+   about #0d1430 under the light to #0a0f1f at the far corner. The seam below
+   pours one flat colour above its curve — it has to, an SVG fill is a colour
+   — so the two could never meet, and the mismatch read as a faint straight
+   band across the top of the seam. A second background layer settles the
+   gradient onto the page's own paper over the last stretch of the hero. It
+   costs nothing to paint and gives the seam a floor that is one exact colour
+   at any width. Keep this layer first: background-image layers paint front to
+   back, so it has to sit over the gradient it is settling. */
+.hero{position:relative;min-height:100svh;display:flex;align-items:center;padding-top:104px;padding-bottom:var(--sp-5);overflow:hidden;
+  background-color:var(--paper);
+  background-image:linear-gradient(180deg,transparent 72%,var(--paper) 100%),var(--hero-bg)}
+/* The aura is drawn on top of that background, so it would put its own light
+   straight back onto the floor the gradient just flattened. It is faded over
+   the last stretch only — the ring's lowest point sits at 84% of the hero,
+   so nothing of the mark itself is touched. */
+#ring{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,#000 86%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 86%,transparent 100%)}
+.hero__in{position:relative;z-index:2;width:100%;max-width:var(--maxw);margin:0 auto;padding:0 var(--gut)}
+.hero__col{max-width:660px}
+.hero h1{margin-bottom:clamp(12px,1.6vw,20px)}
+/* The headline's masked line reveal is part of the entry scene, so its rules
+   live with the rest of the composition in base/enter.css. */
+.hero__lead{font-size:clamp(16px,1.4vw,19px);color:var(--ink-2);max-width:52ch;margin-bottom:clamp(18px,2vw,26px)}
+/* Last block in the column: the hero centres its own content, so a trailing
+   margin here would push everything above the optical middle. */
+.hero__cta{display:flex;flex-wrap:wrap;gap:var(--sp-3)}

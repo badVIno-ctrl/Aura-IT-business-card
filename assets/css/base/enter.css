@@ -1,0 +1,477 @@
+/* Entry scene and section choreography
+   ---------------------------------------------------------------------------
+   Two related jobs live here.
+
+   1. THE ENTRY SCENE. The first frame of a load is a near-black plate. The
+      brand mark — the ring and its three waves — draws itself out of that
+      plate, a light runs along the strokes, and the aura that leaves the mark
+      is what opens the page: the plate irises out from behind the mark, three
+      ripples ride out with it, and the mark itself glides into the place where
+      the hero canvas is about to light up. It is deliberately not a preloader:
+      it reports no progress, waits on no network, has no spinner, no
+      percentage and no dots, and it is removed from the DOM when it ends.
+
+   2. THE CHOREOGRAPHY of everything below the fold. There is no single "fade
+      up" any more. Each section gets one character — headings out from under a
+      line mask, cards on a shallow perspective, project previews wiped in with
+      clip-path, one pass of light across a solid block — assigned by enter.js
+      from a map, so the page reads as directed rather than as a list.
+
+   Three gates make this safe, and they are the reason nothing here can ever
+   leave a visitor staring at hidden content:
+
+   - Every hidden state is keyed on [data-in], an attribute only enter.js
+     writes. Scripting off, or the module throwing, means the attribute is
+     never set and the page is simply the page.
+   - The plate is keyed on html.enter-armed, added by the inline boot script in
+     <head> only when motion is allowed, and the scene plays off html.enter-run,
+     added by a second inline script the moment the mark exists. Neither waits
+     on the module, so a slow webfont can no longer hold a black screen.
+   - A watchdog in <head> clears both classes if the scene never reports
+     finishing.
+
+   A reduced-motion visitor is never armed at all, so there is no scene to
+   shorten and nothing to flash: the content is already where it belongs.
+
+   Load this after every section stylesheet — it briefly overrides the hover
+   transitions of the things it animates, and enter.js drops the attribute
+   again once each element has arrived. */
+
+/* The plate opens as an iris rather than a fade, which needs one animatable
+   length. Registering it is what makes it interpolate; where @property is not
+   supported the mask simply never moves and the plate leaves on the opacity
+   half of the same animation, which is the pre-2023 reading of the scene. */
+@property --en-iris{syntax:"<percentage>";inherits:false;initial-value:0%}
+
+/* --- the scene clock ------------------------------------------------------
+   Every beat is a pair: when it starts and how long it runs. They live here
+   rather than in JavaScript because CSS is what plays them, and the phone
+   profile is then a block of overrides instead of a second timeline. enter.js
+   reads exactly two — --en-content and --en-end — so the hand-off to the page
+   cannot drift out of step with the animation. */
+:root{
+  --en-orb:80ms;     --en-orb-d:560ms;     /* the ring encircles itself      */
+  --en-arc-1:260ms;  --en-arc-2:330ms;     /* each wave draws in turn        */
+  --en-arc-3:400ms;  --en-arc-d:420ms;
+  --en-bloom:200ms;  --en-bloom-d:820ms;   /* light pooling behind the mark  */
+  --en-spec:540ms;   --en-spec-d:400ms;    /* the highlight running the arcs */
+  --en-spec-s:60ms;                        /* between the three highlights   */
+  --en-pulse:880ms;  --en-pulse-d:680ms;   /* the aura leaving the mark      */
+  --en-pulse-s:85ms;                       /* between the three ripples      */
+  --en-iris-t:900ms; --en-iris-d:700ms;    /* the plate opening outward      */
+  --en-wash:920ms;   --en-wash-d:700ms;    /* the light the page arrives in  */
+  --en-flash:950ms;  --en-flash-d:260ms;   /* one beat of exposure           */
+  --en-rel:960ms;    --en-rel-d:640ms;     /* the mark leaving for the hero  */
+  --en-head:980ms;   --en-head-d:680ms;    /* the page header                */
+  --en-ring:1000ms;  --en-ring-d:880ms;    /* the hero canvas, same wave     */
+  --en-content:1000ms;                     /* the wave reaches the headline  */
+  --en-end:1720ms;                         /* overlay leaves the DOM         */
+
+  /* The mark's size, and where it goes when it leaves. enter.js measures the
+     hero canvas and writes the offset and the scale, so the overlay mark lands
+     on the aura the canvas is about to draw instead of drifting at a number
+     somebody guessed. */
+  --en-mark:clamp(184px,26vw,340px);
+  --en-dx:0px; --en-dy:0px; --en-sc:1.18;
+
+  /* Orchestration steps. Nothing uses one delay for everything. */
+  --en-lstep:88ms;   /* between the lines of a heading   */
+
+  /* A drawn stroke wants a curve that leans into the middle of the gesture and
+     lands without overshoot; the page's own --e-out is too front-loaded to read
+     as a pen. The aura gets a curve that leaves fast and keeps travelling. */
+  --en-draw:cubic-bezier(.62,.02,.24,1);
+  --en-wave-e:cubic-bezier(.16,.84,.24,1);
+}
+
+/* Phones play the same scene with the same beats in the same order, only
+   shorter, and with the fullscreen mask swapped for a plain dissolve. */
+html.is-lite{
+  --en-orb:50ms;     --en-orb-d:400ms;
+  --en-arc-1:180ms;  --en-arc-2:230ms;
+  --en-arc-3:280ms;  --en-arc-d:320ms;
+  --en-bloom:130ms;  --en-bloom-d:600ms;
+  --en-spec:390ms;   --en-spec-d:300ms;
+  --en-spec-s:45ms;
+  --en-pulse:630ms;  --en-pulse-d:520ms;
+  --en-pulse-s:70ms;
+  --en-iris-t:650ms; --en-iris-d:500ms;
+  --en-wash:660ms;   --en-wash-d:500ms;
+  --en-flash:680ms;  --en-flash-d:210ms;
+  --en-rel:690ms;    --en-rel-d:470ms;
+  --en-head:710ms;   --en-head-d:500ms;
+  --en-ring:730ms;   --en-ring-d:640ms;
+  --en-content:740ms;
+  --en-end:1280ms;
+  --en-mark:clamp(168px,52vw,240px);
+  --en-lstep:66ms;
+}
+
+/* ===========================================================================
+   THE OVERLAY
+   =========================================================================== */
+
+/* display:none by default: the markup sits in the document so that the very
+   first painted frame is already dark, but only an armed page shows it. */
+.enter{display:none}
+html.enter-armed .enter{
+  display:block;position:fixed;inset:0;z-index:200;overflow:hidden;
+  isolation:isolate;contain:layout style paint;
+  /* A finger on the plate must not scroll the page underneath it, and nothing
+     behind the plate is meant to be clickable for the second and a half it is
+     there. */
+  touch-action:none;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
+html.enter-done .enter{display:none;pointer-events:none}
+
+/* --- the plate -----------------------------------------------------------
+   Inset past the edges so nothing can uncover a corner, and opened from the
+   middle outward: the hole starts behind the mark and grows past the frame,
+   which reads as light pushing the dark aside rather than as a layer fading.
+   The soft edge on the mask is what keeps it from looking like a hard wipe. */
+.enter__veil{position:absolute;inset:-2%;background:var(--enter-veil);
+  will-change:opacity}
+html.is-rich.enter-run .enter__veil{
+  -webkit-mask-image:radial-gradient(circle at 50% 50%,
+    #0000 var(--en-iris),#000 calc(var(--en-iris) + 22%));
+  mask-image:radial-gradient(circle at 50% 50%,
+    #0000 var(--en-iris),#000 calc(var(--en-iris) + 22%));
+  animation:enIris var(--en-iris-d) var(--en-wave-e) var(--en-iris-t) both,
+            enVeil var(--en-iris-d) linear var(--en-iris-t) both}
+@keyframes enIris{ from{ --en-iris:0% } to{ --en-iris:128% } }
+@keyframes enVeil{ 0%{opacity:1} 66%{opacity:1} 100%{opacity:0} }
+/* No fullscreen mask on the cheap path: a mask promotes the plate to its own
+   layer and re-samples it every frame. Same beat, same duration, one composited
+   fade and scale instead. */
+html.is-lite.enter-run .enter__veil{
+  animation:enVeilLite var(--en-iris-d) var(--en-wave-e) var(--en-iris-t) both}
+@keyframes enVeilLite{ 0%{opacity:1} to{opacity:0;transform:scale(1.1)} }
+
+/* --- light pooling behind the mark --------------------------------------
+   A gradient that scales is one composited layer; a shadow that grows is a
+   gaussian pass per frame. */
+.enter__bloom{position:absolute;left:50%;top:50%;
+  width:calc(var(--en-mark) * 3.1);height:calc(var(--en-mark) * 3.1);
+  margin:calc(var(--en-mark) * -1.55) 0 0 calc(var(--en-mark) * -1.55);
+  border-radius:50%;pointer-events:none;opacity:0;
+  transform:scale(.5);
+  background:radial-gradient(closest-side,
+    rgba(var(--enter-air),.40) 0%,
+    rgba(var(--enter-air),.17) 38%,
+    rgba(var(--enter-air),.05) 62%,
+    rgba(var(--enter-air),0) 78%);
+  will-change:opacity,transform}
+html.enter-run .enter__bloom{
+  animation:enBloom var(--en-bloom-d) var(--e-out) var(--en-bloom) both}
+@keyframes enBloom{
+  0%  { opacity:0;  transform:scale(.5) }
+  55% { opacity:1 }
+  100%{ opacity:.92; transform:scale(1.08) } }
+
+/* --- the aura leaving the mark ------------------------------------------
+   Three rings, each a soft donut scaled outward. A scaled border thickens as
+   it travels and reads as a hoop; a gradient ring keeps its proportions and
+   softens, which is what light does. */
+.enter__rings{position:absolute;inset:0;pointer-events:none}
+.enter__rings i{position:absolute;left:50%;top:50%;
+  width:calc(var(--en-mark) * 8);height:calc(var(--en-mark) * 8);
+  margin:calc(var(--en-mark) * -4) 0 0 calc(var(--en-mark) * -4);
+  border-radius:50%;opacity:0;transform:scale(.5);
+  background:radial-gradient(closest-side,
+    rgba(var(--enter-glow),0) 10.6%,
+    rgba(var(--enter-glow),.34) 12.1%,
+    rgba(var(--enter-air),.22) 13.4%,
+    rgba(var(--enter-air),0) 17%);
+  will-change:opacity,transform}
+html.enter-run .enter__rings i{
+  animation:enRipple var(--en-pulse-d) var(--en-wave-e) var(--en-pulse) both}
+html.enter-run .enter__rings i:nth-child(2){
+  animation-delay:calc(var(--en-pulse) + var(--en-pulse-s))}
+html.enter-run .enter__rings i:nth-child(3){
+  animation-delay:calc(var(--en-pulse) + var(--en-pulse-s) * 2)}
+@keyframes enRipple{
+  0%  { opacity:0;   transform:scale(.5) }
+  18% { opacity:1 }
+  100%{ opacity:0;   transform:scale(2.9) } }
+/* The lowest tier keeps one ripple: at that size three read as one anyway, and
+   each is a full-viewport translucent layer to composite. */
+html.is-low .enter__rings i:nth-child(n+2){display:none}
+
+/* --- the mark ------------------------------------------------------------
+   Two nested elements, because two things happen at two different times and a
+   single element owns `transform` once: __mark carries it away to the hero,
+   __glyph brings it in and settles it. */
+.enter__stage{position:absolute;inset:0;display:grid;place-items:center}
+.enter__mark{position:relative;width:var(--en-mark);will-change:opacity,transform}
+html.enter-run .enter__mark{
+  animation:enRelease var(--en-rel-d) var(--en-wave-e) var(--en-rel) both}
+/* The mark is nearly gone by the time it reaches the canvas. It has to be: the
+   canvas draws the same three waves, and two copies of them a few dozen pixels
+   apart read as a ghosted image rather than as one object arriving. */
+@keyframes enRelease{
+  0%  { opacity:1;   transform:none }
+  18% { opacity:.9 }
+  50% { opacity:.14 }
+  100%{ opacity:0;   transform:translate(var(--en-dx),var(--en-dy)) scale(var(--en-sc)) } }
+
+.enter__glyph{display:block;width:100%;height:auto;overflow:visible;
+  will-change:opacity,transform}
+html.enter-run .enter__glyph{
+  animation:enGlyph var(--en-rel) var(--en-draw) 0ms both}
+/* One breath at the moment the light finishes crossing the strokes: the mark
+   settles into itself instead of standing still until it is taken away. */
+@keyframes enGlyph{
+  0%  { opacity:0; transform:scale(.94) }
+  22% { opacity:1 }
+  74% { transform:scale(1) }
+  88% { transform:scale(1.035) }
+  100%{ opacity:1; transform:scale(1) } }
+
+/* The strokes. pathLength="100" in the markup normalises every one to the same
+   nominal length, so a single dash pattern fits the ring and the three waves
+   alike and the numbers below read as percent.
+
+   The ring starts at the top — rotate(-90) — because a circle that closes where
+   the eye entered it reads as finished, and one that closes on its right-hand
+   side reads as merely stopped.
+
+   `opacity` is in the keyframes, not just the dash offset, and that is not
+   decoration: a round cap is drawn even when the dash itself has been pushed
+   entirely off the path, so four strokes waiting their turn at offset 100 paint
+   four bright dots in the middle of the plate. That is precisely what the
+   previous build showed for the first third of a second. Held at zero through
+   the delay, each stroke now appears as its pen touches down. */
+.enter__glyph circle,.enter__glyph path{fill:none;stroke-linecap:round}
+.enter__orb{stroke:url(#enGrad);stroke-width:1.9;opacity:0;
+  stroke-dasharray:100;stroke-dashoffset:100;
+  transform:rotate(-90deg);transform-origin:32px 32px}
+html.enter-run .enter__orb{
+  animation:enDraw var(--en-orb-d) var(--en-draw) var(--en-orb) both}
+.enter__arcs path{stroke:url(#enGrad);stroke-width:3.6;opacity:0;
+  stroke-dasharray:100;stroke-dashoffset:100}
+html.enter-run .enter__arcs path{
+  animation:enDraw var(--en-arc-d) var(--en-draw) both}
+html.enter-run .enter__arcs path:nth-child(1){animation-delay:var(--en-arc-1)}
+html.enter-run .enter__arcs path:nth-child(2){animation-delay:var(--en-arc-2)}
+html.enter-run .enter__arcs path:nth-child(3){animation-delay:var(--en-arc-3)}
+@keyframes enDraw{
+  0%  { opacity:0; stroke-dashoffset:100 }
+  1%  { opacity:1 }
+  100%{ opacity:1; stroke-dashoffset:0 } }
+
+/* A streak of light chasing the pen. The dash is long relative to its width or
+   it reads as a bead sliding along a wire rather than as a highlight. Offsets
+   run from just before the start of the path to just past its end, so the
+   streak enters and leaves instead of appearing and vanishing. The three waves
+   are offset from each other, which tilts the highlight into a front crossing
+   the mark rather than three lights moving in lockstep. */
+.enter__spec path{stroke:rgb(var(--enter-glow));stroke-width:3.6;
+  stroke-dasharray:24 100;stroke-dashoffset:26;opacity:0}
+html.enter-run .enter__spec path{
+  animation:enSpec var(--en-spec-d) cubic-bezier(.34,.06,.3,1) var(--en-spec) both}
+html.enter-run .enter__spec path:nth-child(2){
+  animation-delay:calc(var(--en-spec) + var(--en-spec-s))}
+html.enter-run .enter__spec path:nth-child(3){
+  animation-delay:calc(var(--en-spec) + var(--en-spec-s) * 2)}
+@keyframes enSpec{
+  0%  { opacity:0;  stroke-dashoffset:26 }
+  16% { opacity:1 }
+  80% { opacity:1 }
+  100%{ opacity:0;  stroke-dashoffset:-101 } }
+/* The glow around the strokes is a drop-shadow on the whole glyph: a few
+   hundred pixels of gaussian for a second and a half, once, on hardware that
+   can afford it. Phones get the bare strokes, which still read as light. */
+html.is-rich .enter__glyph{
+  filter:drop-shadow(0 0 10px rgba(var(--enter-air),.55))
+         drop-shadow(0 0 34px rgba(var(--enter-air),.32))}
+html.is-rich .enter__spec{filter:drop-shadow(0 0 12px rgba(var(--enter-glow),.75))}
+
+/* --- the light the page arrives in --------------------------------------
+   One fixed-size circle scaled from almost nothing: the same reading as an
+   animated gradient radius at none of the cost. */
+.enter__wash{position:absolute;left:50%;top:50%;
+  width:170vmax;height:170vmax;margin:-85vmax 0 0 -85vmax;border-radius:50%;
+  opacity:0;pointer-events:none;transform:scale(.06);
+  background:var(--enter-wash);
+  will-change:opacity,transform}
+html.enter-run .enter__wash{
+  animation:enWash var(--en-wash-d) var(--en-wave-e) var(--en-wash) both}
+@keyframes enWash{
+  0%  { opacity:0; transform:scale(.06) }
+  24% { opacity:1 }
+  100%{ opacity:0; transform:scale(1.25) } }
+
+/* One beat of exposure as the light passes the frame. A single short pulse,
+   well under the threshold where a flash becomes a hazard, and it is the moment
+   the light theme reaches its white page rather than fading up to it. */
+.enter__flash{position:absolute;inset:0;pointer-events:none;opacity:0;
+  background:rgb(var(--enter-glow));will-change:opacity}
+html.enter-run .enter__flash{
+  animation:enFlash var(--en-flash-d) ease-out var(--en-flash) both}
+@keyframes enFlash{ 0%{opacity:0} 34%{opacity:var(--enter-flash-a)} 100%{opacity:0} }
+
+/* ===========================================================================
+   THE PAGE ARRIVING
+   The header and the hero canvas are not content, they are the rest of the
+   frame, so they come in with the aura rather than being orchestrated with the
+   copy. Both are pinned invisible while the page is armed so that the frames
+   between arming and running cannot show them.
+   =========================================================================== */
+html.enter-armed .head,html.enter-armed #ring{opacity:0}
+html.enter-run .head{
+  animation:enHead var(--en-head-d) var(--e-out) var(--en-head) both}
+@keyframes enHead{
+  from{ opacity:0; transform:translateY(-16px) }
+  to  { opacity:1; transform:none } }
+html.enter-run #ring{
+  animation:enRing var(--en-ring-d) var(--e-out) var(--en-ring) both}
+@keyframes enRing{ from{opacity:0} to{opacity:1} }
+
+/* ===========================================================================
+   CHARACTERS
+   One per section, assigned by enter.js. `--b` is the element's own delay
+   inside its section, written by enter.js so that the stagger is a property of
+   the composition rather than of the stylesheet.
+   =========================================================================== */
+
+/* --- heading: out from under a line mask --------------------------------
+   enter.js rebuilds a heading as one block per measured line. The block is the
+   mask and the slider inside it is what travels, so the reveal is genuinely
+   line by line instead of a gradient pretending to be one.
+
+   The block structure is kept after the reveal — a forced break in the markup
+   would be lost otherwise — but the mask and the transform are dropped with
+   the attribute, which is what makes a later reflow harmless. */
+.ln,.ln__i{display:block}
+[data-in="head"] .ln{overflow:hidden}
+[data-in="head"] .ln__i{transform:translateY(112%);
+  transition:transform .86s var(--e-out);
+  transition-delay:calc(var(--b,0ms) + var(--i,0) * var(--en-lstep))}
+[data-in="head"].in .ln__i{transform:none}
+
+/* --- copy: the same mask, without splitting the text ---------------------
+   A paragraph is short and its lines are close together, so an inset clip
+   sliding down its box reads as line-by-line on its own and costs no DOM
+   surgery. The final inset is slightly negative so descenders and any focus
+   ring are outside the clip once the element has arrived. */
+[data-in="text"]{opacity:0;transform:translateY(7px);
+  clip-path:inset(0 0 102% 0);
+  transition:opacity .6s var(--e-out),transform .9s var(--e-out),
+             clip-path .92s var(--e-out);
+  transition-delay:var(--b,0ms)}
+[data-in="text"].in{opacity:1;transform:none;clip-path:inset(-8% -8% -8% -8%)}
+
+/* --- cards: a shallow perspective and a micro-scale ---------------------
+   Six degrees around the bottom edge, so the card hinges up off the page
+   rather than sliding in from underneath it. */
+[data-in="lift"]{opacity:0;transform-origin:50% 100%;
+  transform:perspective(1100px) translateY(24px) rotateX(5.5deg) scale(.972);
+  transition:opacity .68s var(--e-out),transform .9s var(--e-out);
+  transition-delay:var(--b,0ms)}
+[data-in="lift"].in{opacity:1;transform:none}
+
+/* --- project previews: wiped open --------------------------------------- */
+[data-in="clip"]{clip-path:inset(0 100% 0 0);
+  transition:clip-path 1s var(--e-drawer);
+  transition-delay:var(--b,0ms)}
+[data-in="clip"].in{clip-path:inset(0 0 0 0)}
+/* The thumbnail inside settles back as the wipe uncovers it, so the wipe reads
+   as a camera passing rather than as a bar moving. */
+[data-in="clip"]>svg{transform:scale(1.07);transform-origin:0 50%;
+  transition:transform 1.1s var(--e-out);transition-delay:var(--b,0ms)}
+[data-in="clip"].in>svg{transform:none}
+
+/* --- a solid block: one pass of light -----------------------------------
+   Used exactly twice, on the two blocks that are large and opaque enough to
+   carry it: the terminal and the full-width quote. Once per page load, never
+   on scroll back, and the pseudo-element goes with the attribute. */
+[data-in="sheen"]{position:relative;opacity:0;transform:translateY(20px) scale(.992);
+  transition:opacity .7s var(--e-out),transform .92s var(--e-out);
+  transition-delay:var(--b,0ms)}
+[data-in="sheen"].in{opacity:1;transform:none}
+[data-in="sheen"]::after{content:"";position:absolute;inset:0;z-index:6;
+  pointer-events:none;opacity:0;transform:translateX(-135%) skewX(-14deg);
+  background:linear-gradient(90deg,
+    rgba(var(--enter-glow),0) 34%,
+    rgba(var(--enter-glow),.14) 46%,
+    rgba(var(--enter-glow),.30) 50%,
+    rgba(var(--enter-glow),.14) 54%,
+    rgba(var(--enter-glow),0) 66%)}
+[data-in="sheen"].in::after{
+  animation:enSheen 1.15s cubic-bezier(.4,0,.2,1) calc(var(--b,0ms) + 340ms) both}
+@keyframes enSheen{
+  0%  { opacity:0; transform:translateX(-135%) skewX(-14deg) }
+  14% { opacity:1 }
+  86% { opacity:1 }
+  100%{ opacity:0; transform:translateX(135%) skewX(-14deg) } }
+
+/* --- process stages: up onto the wave -----------------------------------
+   These used to slide in from the left, because the section was read against a
+   vertical rail on that side and arriving along it was the honest gesture. The
+   rail is gone: the stages now stand on a curve that crosses the block, so they
+   rise onto it instead, staggered left to right in the order the light will
+   reach them.
+
+   Nothing here touches .pstep__dot or the stroke. process.js owns the lit state
+   of both, and a shared property would put the two in a tug of war. */
+[data-in="step"]{opacity:0;transform:translateY(16px);
+  transition:opacity .6s var(--e-out),transform .78s var(--e-out);
+  transition-delay:var(--b,0ms)}
+[data-in="step"].in{opacity:1;transform:none}
+
+/* --- actions: picked up a beat after the copy they belong to ------------- */
+[data-in="btn"]{opacity:0;transform:translateY(15px);
+  transition:opacity .5s var(--e-out),transform .68s var(--e-out);
+  transition-delay:var(--b,0ms)}
+[data-in="btn"].in{opacity:1;transform:none}
+
+/* --- the watchdog fired --------------------------------------------------
+   enter.js never reported finishing, so it either threw or never loaded, and
+   whatever it had already hidden would stay hidden. Release all of it
+   unconditionally. This class is only ever set by the failsafe in <head>; on
+   the normal path html.enter-done arrives while sections further down the page
+   are still legitimately waiting their turn, which is why the rule is keyed on
+   the bail class and not on that one. */
+html.enter-bail [data-in]{opacity:1!important;transform:none!important;
+  clip-path:none!important}
+html.enter-bail [data-in] .ln__i{transform:none!important}
+html.enter-bail [data-in]::after{display:none!important}
+html.enter-bail .head,html.enter-bail #ring{opacity:1!important;animation:none!important}
+
+/* ---- the scene on a weak device -----------------------------------------
+   Measured on a 2-core, 4GB profile with the CPU at 1/6 - roughly a
+   five-year-old budget Android: the opening ran at 4.8fps, median frame
+   117ms, with one frame that took 966ms. A plate that stutters is worse
+   than no plate, so the lite tier gives up the two things that cost a phone
+   most and keeps everything that carries the idea - the iris, the draw, the
+   lift and the release all still run, in full, on their own timings.
+
+   The drop-shadow goes first. A filter on an animating element is
+   re-rasterised every single frame, and it is the most expensive property
+   in this file. What is lost is a halo around a highlight that is already
+   the brightest thing on a dark plate; at phone size it was never the
+   difference between the scene working and not.
+
+   The will-change hints go too, which is the opposite of the usual advice
+   and is right here. Every one promotes a compositor layer, and this
+   overlay stacks seven of them at full viewport size - at 390x844 and DPR 2
+   that is around 26MB of layer memory on a device with 4GB, which is what
+   produces the 966ms frame: the compositor is not slow, it is out of room.
+   Chrome promotes what it needs by itself once a transform is actually
+   running. The hint only buys the first frame, and one frame is a fair
+   price for six fewer full-screen layers.
+
+   Both are scoped to .is-lite, so a desktop keeps every layer and every
+   glow exactly as it was. */
+html.is-lite .enter__spec{filter:none}
+
+html.is-lite .enter__veil,
+html.is-lite .enter__bloom,
+html.is-lite .enter__rings,
+html.is-lite .enter__stage,
+html.is-lite .enter__mark,
+html.is-lite .enter__glyph,
+html.is-lite .enter__orb,
+html.is-lite .enter__arcs,
+html.is-lite .enter__spec,
+html.is-lite .enter__wash,
+html.is-lite .enter__flash{will-change:auto}

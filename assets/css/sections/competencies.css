@@ -1,0 +1,19 @@
+/* Competencies + terminal shell */
+.comp{display:grid;grid-template-columns:.92fr 1.08fr;gap:clamp(28px,4vw,64px);align-items:center}
+.comp__lead{color:var(--ink-2);margin:var(--sp-2) 0 var(--sp-4);max-width:44ch}
+.clist{display:grid;gap:var(--sp-2);margin:0;padding:0;list-style:none}
+.clist li{display:grid;grid-template-columns:22px 1fr;gap:12px;color:var(--ink-3);font-size:15.5px;line-height:1.5}
+.clist li::before{content:"";height:2px;width:14px;margin-top:11px;background:linear-gradient(90deg,var(--c-blue),var(--c-sky));border-radius:2px}
+.clist b{color:var(--ink);font-weight:600}
+
+/* The terminal is a depiction of a terminal, so it stays dark in both themes.
+   Only its shadow follows the page, because a shadow belongs to the surface
+   it falls on rather than to the object casting it. */
+.term{background:var(--term);border-radius:16px;overflow:hidden;
+  box-shadow:0 40px 80px -50px rgba(var(--sh),.9),0 2px 0 rgba(255,255,255,.05) inset;
+  transform:perspective(1400px) rotateY(-4deg) rotateX(2deg);transition:transform var(--t-m) var(--e-out)}
+.term:hover{transform:perspective(1400px) rotateY(0) rotateX(0) translateY(-4px)}
+.term__bar{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.07)}
+.dots{display:flex;gap:6px;flex:none}
+.dots i{width:11px;height:11px;border-radius:50%;display:block}
+.dots i:nth-child(1){background:#FF5F57}.dots i:nth-child(2){background:#FEBC2E}.dots i:nth-child(3){background:#28C840}

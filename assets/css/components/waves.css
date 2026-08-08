@@ -1,0 +1,233 @@
+/* Living layers: the page-wide wave field, the pool of light under the cursor,
+   and the wave that every section ends on.
+   ---------------------------------------------------------------------------
+   Three ideas, one stylesheet, because all three are the same gesture at
+   different scales: the brand's wave, lit and moving.
+
+   1. #bgw is a single fixed canvas behind the whole document, painted by
+      assets/js/modules/backdrop.js. It is the layer that answers the cursor.
+   2. .sglow is one soft pool of brand blue per section, parked wherever the
+      pointer is inside it — an opaque band hides the canvas, so this lights
+      those bands from the inside instead.
+   3. .wsep is the boundary between two sections.
+
+   THE SEAM IS THE BOUNDARY, NOT A DECORATION ON IT. This is the part worth
+   understanding before editing anything here. The page used to change colour on
+   a straight horizontal edge and then draw a wave near it, which meant every
+   band was still a rectangle with a squiggle beside it. Now the seam owns the
+   change of colour, and it owns BOTH sides of it: one filled path pours the
+   section above from the curve up to the top edge, a second pours the section
+   below from the curve down to the bottom edge, and the seam itself has no
+   background at all.
+
+   That second point is the whole fix, so it is worth stating plainly. The seam
+   used to take its upper colour from its own `background` and only draw the
+   lower one. That works until the section *below* is the transparent one — a
+   background cannot be un-painted under a curve, so the entire band stayed the
+   colour of the section above and met the next section along a flat edge. That
+   was the horizontal line under the waves. Painting both sides means neither is
+   a rectangle: the bottom row of the seam is exactly the colour the next section
+   starts with, the top row is exactly the colour the last one ended with, at any
+   width — so the two bands meet along the wave and nowhere else. Do not
+   reintroduce a background here; it will bring the line back with it.
+
+   The consequence to respect: the filled path must never be transformed,
+   scaled or faded, or the colours stop meeting the bands they belong to. Only
+   the strokes over it are allowed to arrive. Everything here is aria-hidden and
+   pointer-events:none — a seam sits between two clickable regions and must
+   never eat a click meant for either. */
+
+/* --- the wave field ------------------------------------------------------- */
+#bgw{
+  position:fixed;inset:0;width:100%;height:100%;
+  z-index:0;pointer-events:none;
+  /* Faded in once the first frame is on the canvas, so the page never shows an
+     empty rectangle of nothing where the field is about to be. */
+  opacity:0;transition:opacity 1.1s var(--e-out)}
+#bgw.on{opacity:1}
+
+/* The document sits above the field, and each section's content above that
+   section's pool of light. Two lines, and no z-index is needed anywhere else. */
+main,.foot{position:relative;z-index:1}
+.sec>.wrap,.hero__in{position:relative;z-index:1}
+
+/* --- the band colours ----------------------------------------------------
+   Every colour a seam has to meet is named here, once. --tint is the tinted
+   band: slightly transparent, so the field shows through it, and the seam fill
+   uses the very same value — identical colour at identical alpha over the same
+   canvas composites to the same pixel, which is what makes the join invisible.
+   The flat fallback is declared first for engines without color-mix. */
+:root{--tint:var(--paper-2)}
+
+/* The one colour a seam draws itself in when it has no room to be four
+   layers. Not a new hue invented for the occasion - it is the middle stop
+   of the gradient the seam already uses, so the flat line and the layered
+   one are recognisably the same blue, and it follows the theme with
+   everything else. */
+:root{--wsep-line:var(--c-blue)}
+@supports (color:color-mix(in srgb,red 50%,transparent)){
+  :root{--tint:color-mix(in srgb,var(--paper-2) 90%,transparent)}
+}
+.sec--tint{background:var(--tint)}
+
+/* --- the pool of light under the cursor ---------------------------------- */
+.sglow{
+  position:absolute;inset:0;z-index:0;pointer-events:none;
+  opacity:0;transition:opacity .5s var(--e-out);
+  background:
+    radial-gradient(520px 520px at var(--mx,50%) var(--my,50%),
+      var(--card-glow),transparent 68%),
+    radial-gradient(180px 180px at var(--mx,50%) var(--my,50%),
+      var(--card-glow),transparent 72%)}
+.is-glow>.sglow{opacity:1}
+
+/* --- the seam ------------------------------------------------------------ */
+.wsep{
+  position:relative;z-index:1;pointer-events:none;
+  height:clamp(92px,9.5vw,152px);
+  /* The crest overshoots while it moves; clipping to the band is what keeps it
+     from landing in the heading above. It also clips the upper fill, which is
+     deliberately drawn a couple of pixels past the top edge. */
+  overflow:hidden;
+  /* No background. See the note above — a background is a rectangle, and a
+     rectangle is the horizontal line this element exists to abolish. */
+  background:none}
+
+/* Which two colours this particular seam joins: --wsep-from is the section
+   above, --wsep-to the section below. Leaving one unset means "that side is the
+   bare page" — nothing is painted there and the background field shows through,
+   which is exactly what the untinted sections are. A seam with neither set
+   joins a band to itself and only the lit curve marks the change of section. */
+.wsep--hero {--wsep-from:var(--paper)}                   /* hero   → plain   */
+.wsep--in   {--wsep-to:var(--tint)}                      /* plain  → tinted  */
+.wsep--out  {--wsep-from:var(--tint)}                    /* tinted → plain   */
+.wsep--cta  {--wsep-from:var(--tint);--wsep-to:var(--cta-1)}   /* → contact  */
+.wsep--foot {--wsep-from:var(--cta-3);--wsep-to:var(--paper)}  /* → footer   */
+
+.wsep__svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+
+/* The two bands, poured in above and below the curve. Never transformed and
+   never faded: these paths are structure, not ornament. The upper one is first
+   in the markup so the lower one paints over the 0.8px both share. */
+.wsep__fill,.wsep__fill-up{stroke:none}
+.wsep__fill-up{fill:var(--wsep-from,transparent)}
+.wsep__fill{fill:var(--wsep-to,transparent)}
+
+.wsep path:not(.wsep__fill):not(.wsep__fill-up){fill:none;stroke-linecap:round;
+  vector-effect:non-scaling-stroke}
+
+/* Three copies of the same curve over the join. The faint one behind is the
+   water; the bed is the line itself and draws in when the seam is reached; the
+   lit one is a short segment of light running the curve for as long as the seam
+   is on screen. They fade in — they never scale, because they have to stay on
+   the colour boundary they are drawn along. */
+.wsep__back,.wsep__bed,.wsep__lit,.wsep__bead{
+  opacity:0;transition:opacity .8s var(--e-out)}
+
+/* EVERY STROKE IS A SHARE OF ITS BAND, NOT A NUMBER OF PIXELS.
+   --------------------------------------------------------------------------
+   These widths carry `vector-effect:non-scaling-stroke`, which is what keeps
+   the line crisp when the viewBox is stretched to the box — and also what made
+   the phone look wrong. The width stayed at 2px whether the band around it was
+   137px tall or 55px, so on a phone the line was two and a half times heavier
+   relative to the wave it was drawing: a rope making a shallow squiggle rather
+   than a hairline riding water.
+
+   waves.js measures each seam and publishes --wsep-k, the share of the
+   reference height that band actually got. It resolves to exactly 1 at full
+   height, so every one of these numbers is the number that was here before on
+   a wide screen, and only a short band scales down. The fallback of 1 keeps
+   the seams correct if the script never runs.
+
+   The three widths stay in their original ratio to each other (1.4 : 2 : 2.8),
+   because that ratio is what reads as water, line and light — it is only their
+   common scale that was wrong. */
+.wsep__back{stroke:url(#wsepG);stroke-width:calc(1.4px * var(--wsep-k,1))}
+.wsep.in .wsep__back{opacity:.26}
+
+.wsep__bed{stroke:url(#wsepG);stroke-width:calc(2px * var(--wsep-k,1));
+  stroke-dasharray:100;stroke-dashoffset:100;
+  transition:opacity .6s var(--e-out),stroke-dashoffset 1.5s var(--e-out)}
+.wsep.in .wsep__bed{opacity:.6;stroke-dashoffset:0}
+
+/* The keyframe below is the no-JS fallback. When waves.js is running it sets
+   `animation:none` on this element and writes the offset itself, because the
+   bead has to be on the head of this dash and a CSS clock and a JS clock
+   cannot be relied on to agree — the two used to run at 4.2s and 4.76s a lap
+   and drifted a full half-lap apart every twenty seconds. */
+.wsep__lit{stroke:url(#wsepG);stroke-width:calc(2.8px * var(--wsep-k,1));
+  stroke-dasharray:22 78;stroke-dashoffset:100}
+.wsep.in .wsep__lit{opacity:.95;animation:wsepRun 4.2s linear infinite}
+@keyframes wsepRun{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+
+/* The head of that light: a bead the size of the dot on a process stage, in the
+   same hot colour, so the seam and the process wave read as one system. Its
+   radius is set by waves.js off the same --wsep-k as the strokes, so the head
+   keeps its proportion to the line it rides. */
+.wsep__bead{fill:var(--proc-head)}
+.wsep.in .wsep__bead{opacity:.92}
+
+/* THE FILTER IS THE COST, NOT THE CIRCLE.
+   These two drop-shadows are live gaussian passes on a moving element, and a
+   phone should not run two of them per seam. That reasoning was right, but the
+   rule it produced hid the bead itself — and the bead is the entire reason the
+   lit dash reads as the *head of a travelling light* rather than as a bright
+   object lying next to the wave. Without it, a 22% dash of a shallow curve is
+   a short straight rod floating above the line: the torn-off stick in the phone
+   screenshots. So the filters stay behind on a weak device and the bead comes
+   with us — an untouched 4px circle costs a GPU nothing. */
+.is-rich .wsep__lit{filter:drop-shadow(0 0 7px rgba(var(--btn-glow),.6))}
+.is-rich .wsep__bead{filter:drop-shadow(0 0 9px rgba(var(--btn-glow),.75))}
+
+/* ---- one wave ----------------------------------------------------------
+   Four objects share this band: the water behind, the bed, the light cut
+   from a 22/78 dash, and the bead at its head. At full height, with the
+   drop-shadow above fusing them, they read as one lit surface. A phone gets
+   neither: the band is 74px and `.is-lite` takes the shadow away. Measured
+   there, the four are a 0.94px grey curve sitting 8.5px low and running to
+   its own phase, a 1.35px grey curve, a 1.88px white dash that stops and
+   starts, and a loose white dot - a wave that breaks, changes colour and
+   runs crooked, which is precisely what it was reported as.
+
+   So below the height where the layered reading works, the seam stops
+   pretending to be four things. waves.js measures each band and sets this
+   class; the threshold is the band's own height, not the window's width,
+   because height is what the layers run out of.
+
+   Nothing about the motion changes. The sway, the breath, the three voices
+   of the swell, the whip on a fast scroll and the swell under a finger are
+   all in the path this line is drawn from, and it still gets a new one every
+   frame. It moves exactly as it does on a desktop. It just does it once. */
+.wsep--solid .wsep__back,
+.wsep--solid .wsep__lit,
+.wsep--solid .wsep__bead{display:none}
+
+.wsep--solid .wsep__bed{
+  /* The gradient goes with them. Across 1440px it is a slow wash; across
+     390px it is a colour change every 130px, on a line 1.35px thick. A flat
+     token also spares a phone one paint server to resolve per frame. */
+  stroke:var(--wsep-line);
+  /* Carrying the band alone now, so no longer sized for a crowd. The
+     hairline was only ever a hairline because three brighter things were
+     drawn over it; on its own it has to hold the edge between two sections
+     by itself. Flat, not scaled by --wsep-k: the scale exists to keep four
+     strokes in proportion to each other, and there are no longer four. */
+  stroke-width:2.2px}
+
+/* Brighter than the .6 it sat at as a bed, because it is not a bed any more.
+   Same source order as the rule it overrides, one class heavier, so the
+   draw-in on arrival - dashoffset 100 -> 0 over 1.5s - is inherited
+   untouched and the seam still writes itself in when scrolled to. */
+.wsep--solid.in .wsep__bed{opacity:.92}
+
+/* --- reduced motion ------------------------------------------------------
+   The wave stays, because it is the boundary between two sections and removing
+   it would remove the structure of the page. Only the movement goes: waves.js
+   paints each curve once and never starts its loop. */
+@media (prefers-reduced-motion:reduce){
+  #bgw{display:none}
+  .sglow{display:none}
+  .wsep__bed{stroke-dashoffset:0;transition:none}
+  .wsep__lit,.wsep__bead{display:none}
+  .wsep__back{opacity:.26}
+}

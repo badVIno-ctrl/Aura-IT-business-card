@@ -1,0 +1,115 @@
+/* Footer
+   ---------------------------------------------------------------------------
+   It was two rows of 13.5px grey text under a hairline — a legal notice, not an
+   ending. The page spends its whole length lighting things and then stops mid-
+   sentence.
+
+   The composition, and why it is this one:
+
+   — THREE UNEQUAL COLUMNS. The mark and the wordmark take the widest one,
+     because the last thing on the page should be who made it. The section list
+     is the narrowest, because it is a courtesy and not the point. Contact sits
+     on the right at the largest type size in the block: it is the only thing
+     here anyone came for.
+   — THE SIGN IS REPEATED, LIT, AND THEN REPEATED AGAIN AS LIGHT. The same mark
+     as the header at 52px, and behind the whole block one enormous, almost
+     invisible copy of it bleeding off the right edge — the wash the page fades
+     out into, at the opacity of a watermark rather than of a graphic.
+   — AIR IS THE MATERIAL. The block runs on --sp-5 and the section rhythm, so it
+     is as generous as the sections above it.
+   — THE HAIRLINE IS THE BRAND'S. The top edge is the same three hues as every
+     lit stroke on the site, fading out to the left and right so it reads as
+     light spilling over the boundary and not as a coloured rule.
+
+   The e-mail is an accent and it is allowed to be: 20px, in the ink colour, with
+   the gradient underline the nav uses drawn under it on hover. The one piece of
+   type that is deliberately quiet is the copyright — last, smallest, alone. */
+
+.foot{position:relative;overflow:hidden;
+  padding:clamp(46px,5.4vw,72px) 0 clamp(20px,2.2vw,28px);
+  background:var(--paper)}
+
+/* The top edge carries nothing at all. The wave seam directly above the footer
+   is the boundary, and a hairline under a wave is the straight edge the wave
+   was drawn to replace. */
+
+/* The watermark. Bleeding off the right edge on purpose: a mark that fits
+   inside the block is a logo placed in a corner, and a mark that runs out of
+   the page is the page ending. */
+.foot__ghost{position:absolute;right:-6%;bottom:-34%;width:min(46%,420px);
+  pointer-events:none;color:var(--c-blue);opacity:.06;
+  mask-image:linear-gradient(200deg,#000 20%,transparent 78%);
+  -webkit-mask-image:linear-gradient(200deg,#000 20%,transparent 78%)}
+.foot__ghost svg{display:block;width:100%;height:auto}
+
+.foot__in{position:relative;display:grid;
+  grid-template-columns:1.25fr .7fr 1.05fr;
+  gap:clamp(28px,4vw,64px);align-items:start}
+
+/* --- brand --------------------------------------------------------------- */
+.foot__brand{display:flex;flex-direction:column;gap:var(--sp-3)}
+.foot__sign{display:flex;align-items:center;gap:14px;
+  font-family:var(--f-d);font-weight:700;font-size:22px;letter-spacing:-.02em;
+  color:var(--ink)}
+.foot__sign svg{display:block;width:52px;height:52px;flex:none}
+/* The same wave as the header's hover trace, at rest and permanently — here it
+   is a rule under the wordmark rather than an event, because nothing in a
+   footer should be waiting to be discovered. */
+.foot__wave{display:block;width:min(100%,300px);height:10px;overflow:visible;opacity:.75}
+.foot__wave path{fill:none;stroke:url(#ftWave);stroke-width:2;stroke-linecap:round}
+
+/* --- sections ------------------------------------------------------------ */
+.foot__col{display:flex;flex-direction:column;gap:var(--sp-2)}
+.foot__lab{font-family:var(--f-m);font-size:11px;font-weight:500;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.foot__nav{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+.foot__nav a{position:relative;font-size:14.5px;color:var(--ink-2);
+  transition:color var(--t-f) var(--e-out),transform var(--t-f) var(--e-out)}
+/* A footer link is a small target in a quiet place, so it answers with two
+   things at once: it lights up and it steps toward the reader. */
+.foot__nav a:hover{color:var(--ink);transform:translateX(3px)}
+
+/* --- contact ------------------------------------------------------------- */
+.foot__reach{display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-2)}
+.foot__mail{position:relative;font-family:var(--f-d);font-weight:600;
+  font-size:clamp(18px,1.6vw,21px);letter-spacing:-.01em;color:var(--ink);
+  padding-bottom:4px}
+.foot__mail::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;
+  border-radius:2px;
+  background:linear-gradient(90deg,var(--c-sky),var(--c-blue) 56%,var(--c-violet));
+  transform:scaleX(0);transform-origin:0 50%;
+  transition:transform var(--t-f) var(--e-out)}
+.foot__mail:hover::after,.foot__mail:focus-visible::after{transform:scaleX(1)}
+
+.foot__tg{display:inline-flex;align-items:center;gap:9px;font-size:14.5px;
+  color:var(--ink-2);transition:color var(--t-f) var(--e-out)}
+/* The official mark carries its own colour, so this no longer paints it with
+   `fill:currentColor` - a monochrome Telegram bird is not the Telegram bird.
+   A hair larger than the type beside it, because a circular mark reads smaller
+   than its own box next to a line of text. */
+.foot__tg svg{display:block;width:18px;height:18px;flex:none;
+  transition:transform var(--t-f) var(--e-out)}
+.foot__tg:hover{color:var(--c-blue)}
+.foot__tg:hover svg{transform:translate(2px,-2px)}
+.foot__where{font-size:13.5px;color:var(--ink-3)}
+
+/* --- the last line ------------------------------------------------------- */
+.foot__base{position:relative;display:flex;align-items:center;
+  justify-content:space-between;gap:var(--sp-3);flex-wrap:wrap;
+  margin-top:clamp(34px,4vw,56px);padding-top:var(--sp-3);
+  border-top:0;
+  /* Faded at both ends: a closing divider, not a line drawn across the page. */
+  background:linear-gradient(90deg,transparent,var(--line) 22%,var(--line) 78%,transparent)
+    top left/100% 1px no-repeat;
+  font-size:13px;color:var(--ink-3)}
+
+/* "Back to top" is the only action in the block, so it is drawn as one: the
+   arrow travels, the label does not. */
+.foot__up{display:inline-flex;align-items:center;gap:8px;
+  font-family:var(--f-m);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3);transition:color var(--t-f) var(--e-out)}
+.foot__up svg{display:block;width:13px;height:13px;fill:none;stroke:currentColor;
+  stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;
+  transition:transform var(--t-f) var(--e-out)}
+.foot__up:hover{color:var(--ink)}
+.foot__up:hover svg{transform:translateY(-3px)}

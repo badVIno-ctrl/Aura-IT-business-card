@@ -1,0 +1,38 @@
+/* Aura IT - stylesheet entry point
+   Import order defines the cascade: tokens -> base -> components -> sections
+   -> responsive overrides. Do not reorder without re-testing breakpoints. */
+@import url("base/tokens.css");
+@import url("base/reset.css");
+@import url("base/layout.css");
+@import url("components/header.css");
+@import url("components/theme-switch.css");
+@import url("components/buttons.css");
+@import url("components/burger.css");
+@import url("sections/hero.css");
+@import url("sections/competencies.css");
+@import url("components/terminal.css");
+@import url("sections/services.css");
+@import url("sections/process.css");
+@import url("sections/portfolio.css");
+@import url("components/preview.css");
+@import url("sections/contact.css");
+@import url("sections/footer.css");
+@import url("components/waves.css");
+@import url("components/portal.css");
+@import url("components/thread.css");
+/* The custom cursor stylesheet is gone on purpose — see the note at the top of
+   assets/js/modules/theme.js's neighbour: the dot-and-ring layer competed with
+   the page's own light language and was removed rather than patched. */
+@import url("base/responsive.css");
+@import url("base/lite.css");
+/* The phone pass. Last of the layout sheets on purpose: it is the only place
+   allowed to overrule base/responsive.css, and everything in it is scoped to a
+   coarse pointer or a narrow viewport. base/enter.css and base/motion.css stay
+   after it so the entry choreography and the reduced-motion switch keep the
+   final word. */
+@import url("base/phone.css");
+/* After every section stylesheet on purpose: the entry scene briefly overrides
+   the hover transitions of the elements it animates, and hands them back by
+   dropping its own attribute once each one has arrived. */
+@import url("base/enter.css");
+@import url("base/motion.css");

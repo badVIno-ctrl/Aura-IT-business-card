@@ -1,0 +1,348 @@
+/* The phone pass
+   ===========================================================================
+   base/responsive.css steps the desktop layout down through five breakpoints.
+   That is a page being made to fit a narrow screen. This file is the part that
+   is about the screen itself: what a finger can hit, what a phone's chrome does
+   to the viewport, and which of the page's decorations are worth their cost at
+   arm's length on a battery.
+
+   IT IS SEPARATE FROM base/responsive.css ON PURPOSE. That file has a stated
+   contract - its phone pass is last and carries no extra specificity, so
+   anything after it wins. Appending to the bottom of it would have made a
+   400-line stylesheet with two different jobs in it. This one is imported
+   directly after, so the contract holds and the two jobs stay apart.
+
+   THREE RULES IT KEEPS TO.
+
+   1. Nothing here removes a feature. Where a phone cannot afford something it
+      is given the cheap version of the same idea, in the same tokens, so the
+      page reads as itself and not as a stripped copy. That is the same contract
+      base/lite.css works to.
+   2. Everything is scoped. `pointer:coarse` for touch affordances, a width for
+      layout, `html.is-lite` for the runtime profile. A desktop at 800px wide
+      gets the narrow layout and keeps its mouse-sized controls.
+   3. Only transform and opacity are animated. A phone's compositor is the one
+      part of it that is not slow.
+
+   ORDER INSIDE THE FILE
+     1. Touch targets
+     2. The viewport a phone actually gives you (safe areas, dynamic chrome)
+     3. Weight - how long the page is under a thumb
+     4. Decoration that does not survive the trip
+     5. The panel, and the page holding still behind it
+     6. Press, because there is no hover
+     7. The code panel as a thing you pan
+     8. The strip above the floating bar
+*/
+
+/* ===========================================================================
+   1. TOUCH TARGETS
+   ===========================================================================
+   The floor is 44x44 CSS pixels. Where a control is drawn smaller than that
+   because the composition needs it to be, the target is expanded past the paint
+   rather than the paint being inflated to meet the target. */
+
+@media (pointer:coarse){
+  /* THE COPY CONTROL. Drawn at 40px so the terminal's chrome bar stays chrome.
+     The expander takes it to 48x48 of hittable area, biased left and down
+     because that is where the thumb comes from and where there is room - the
+     panel's own corner is up and to the right.
+
+     It reuses ::after, which on a fine pointer carries the sheen that crosses
+     the button on hover. There is no hover here, so the sheen never runs and
+     the pseudo-element is free. Everything the sheen set is unset explicitly
+     rather than left to chance: a stray 130% translate on a transparent box is
+     still a box in the wrong place.
+
+     `z-index:0` and not the sheen's `-1`: at -1 the expander sits behind the
+     button's own background inside its stacking context, and the part of it
+     that hangs outside the border box is then behind the bar as well. */
+  /* `overflow` has to be released first. .btn clips itself so the sheen cannot
+     escape the pill, and that same clip was cutting the expander back to the
+     painted box - measured: 36x36 hittable inside a 41x40 button, because the
+     12px corner radius eats the corners too. No sheen runs on a coarse
+     pointer, so there is nothing left for the clip to hold in. */
+  .copy{overflow:visible}
+  .copy::after{
+    content:"";position:absolute;z-index:0;
+    inset:-6px;
+    /* Barely rounded, and deliberately not the button's 12px: a rounded target
+       loses its corners to the hit test, which is exactly the problem being
+       fixed. Nothing is painted here, so the shape is never seen. */
+    border-radius:10px;
+    background:none;opacity:1;transform:none;animation:none;
+    pointer-events:auto}
+  .copy:hover::after{animation:none}
+
+  /* The tab strip is scrolled with the same thumb that selects from it, so its
+     items need room to be pressed without the strip moving. */
+  .term__tabs{scroll-padding-inline:8px;-webkit-overflow-scrolling:touch}
+
+  /* A press has to be visible on a screen that cannot show a hover. Every
+     pressable thing on the page already answers a mouse; this is the same
+     answer, faster, because a finger covers what it is pressing and the
+     feedback has to arrive before it is hidden. */
+  .copy:active,.term__sheet-x:active{transform:scale(.92)}
+  .tab:active{transform:scale(.95)}
+}
+
+/* ===========================================================================
+   2. THE VIEWPORT A PHONE ACTUALLY GIVES YOU
+   ===========================================================================
+   The document is declared `viewport-fit=cover`, so the page runs under the
+   notch and under the home indicator. That is right for the scenes, which are
+   meant to fill the screen, and wrong for everything with words in it. */
+
+@media (max-width:900px){
+  /* Gutters take the larger of the design gutter and the inset the hardware
+     asks for, so a landscape phone with a notch on the left does not put a
+     heading under it. `max()` and not an addition: on the overwhelming majority
+     of phones the inset is 0 and the design gutter must not grow. */
+  .wrap{
+    padding-left:max(var(--gut),env(safe-area-inset-left));
+    padding-right:max(var(--gut),env(safe-area-inset-right))}
+
+  /* The last thing on the page sits above the home indicator rather than
+     under it. */
+  .foot{padding-bottom:calc(clamp(20px,2.2vw,28px) + env(safe-area-inset-bottom))}
+}
+
+/* ===========================================================================
+   3. WEIGHT - HOW LONG THE PAGE IS UNDER A THUMB
+   ===========================================================================
+   Measured before touching anything: 10130px at 390x844, which is twelve full
+   screens. 1080 of those pixels were the portal's scroll track - empty page
+   whose only job is to give the pinned hero something to be scrolled through.
+
+   On a mouse that track is two turns of a wheel and the scene reads as a scene.
+   Under a thumb one flick covers a whole screen, so 128svh of track is not
+   "two beats", it is two flicks of nothing happening followed by the content
+   arriving. That is the single biggest reason the page felt long and heavy on a
+   phone, and shortening it is worth more than any amount of shaved paint.
+
+   The scene is NOT removed. All four acts still run, over the same normalised
+   progress; they are simply mapped onto a distance a thumb can actually hold.
+   70svh is one deliberate swipe - long enough that the mark is seen to open,
+   short enough that nobody flicks past the whole thing by accident. */
+@media (max-width:640px){
+  :root{--portal-len:70svh}
+}
+@media (max-width:400px){
+  /* A small phone gets a shorter one again: the same swipe covers a larger
+     fraction of a shorter screen. */
+  :root{--portal-len:62svh}
+}
+
+
+/* ===========================================================================
+   4. DECORATION THAT DOES NOT SURVIVE THE TRIP
+   ===========================================================================
+   The test for keeping something here is not "is it nice" - it is "is it still
+   legible at this size". A drawing scaled to a third of the width it was
+   composed at is not a quieter version of itself, it is noise that costs a
+   paint. */
+/* 900 and not 760: measured at both. A tablet at 768px was still pushing the
+   ghost to 814 of a 768px screen, so the breakpoint follows the element's own
+   failure rather than the nearest round number already in the file. */
+@media (max-width:900px){
+  /* The footer's ghost mark. At 390px it is a 66%-wide circle hanging off the
+     right edge at 6% opacity, three quarters of it outside the footer's own
+     clip. What reaches the screen is an off-centre arc nobody can read as a
+     logo, over the one part of the page that has the phone number in it. It
+     was also the last element still reported overflowing the viewport at these
+     widths (195...452 of a 390px screen, 461...814 of a 768px one), so it
+     goes. */
+  .foot__ghost{display:none}
+}
+
+
+/* ===========================================================================
+   5. THE PANEL, AND THE PAGE HOLDING STILL BEHIND IT
+   ===========================================================================
+   components/header.css already sets `html.nav-open{overflow:hidden}`, which is
+   enough on a desktop browser and is NOT enough on a phone. Two things leak.
+
+   First, `overflow:hidden` on the root does not reliably stop touch scrolling
+   in iOS Safari - the page keeps rubber-banding under the open panel, which is
+   the exact thing that makes an overlay feel like it is not really there.
+   `overscroll-behavior` on both the root and the body closes the chain.
+
+   Second, the panel is positioned against a bar that now sits under the status
+   bar, and its last item can land under the home indicator. Both ends get the
+   inset the hardware asks for. */
+@media (max-width:900px){
+  html.nav-open,html.nav-open body{overscroll-behavior:none}
+  html.nav-open body{overflow:hidden}
+
+  /* The bar clears the notch. `.head` is fixed with its own top padding, so
+     adding the inset to that padding moves the capsule down without touching
+     --head-h, which the logo, the pill and the compaction all read from. */
+  .head{padding-top:calc(clamp(10px,1.2vw,16px) + env(safe-area-inset-top))}
+
+  /* An anchor jump has to clear the bar AND the notch, or the heading it lands
+     on is behind the glass. */
+  section[id]{scroll-margin-top:calc(clamp(88px,11vw,104px) + env(safe-area-inset-top))}
+
+  /* The panel can be taller than the screen on a small phone once the CTA is
+     in it, so it scrolls - and its last row stops above the home indicator
+     rather than under it. */
+  .nav{max-height:calc(100svh - var(--head-h) - 28px - env(safe-area-inset-top));
+    overflow-y:auto;overscroll-behavior:contain;
+    padding-bottom:calc(9px + env(safe-area-inset-bottom))}
+}
+
+
+/* ===========================================================================
+   6. PRESS, BECAUSE THERE IS NO HOVER
+   ===========================================================================
+   base/responsive.css correctly turns the hover lifts off below 760px - a card
+   that rises 5px when a finger lands on it, and stays risen because touch has
+   no un-hover, is worse than a card that does nothing. But "does nothing" is
+   what it left behind, and a control that gives no answer at all reads as
+   broken on the press before it reads as working on the release.
+
+   So the lift is replaced rather than deleted: a small, fast inward press.
+   Inward and not upward because a finger is on top of the element and cannot
+   see it move away; scale is felt at the edges, which are the only part still
+   visible around the fingertip.
+
+   All of it is one transform, all of it is under 160ms, and none of it uses an
+   ease-in - a press has to answer immediately and settle, never start slowly.
+   --t-press and --e-press are the tokens the project already presses with, so
+   these read as the same gesture as the buttons rather than a second one. */
+@media (pointer:coarse){
+  .card,.proj,.tg,.foot__tg,.contacts a,.foot__mail,.foot__up,.portal__skip{
+    -webkit-tap-highlight-color:transparent}
+
+  /* Big surfaces move least. A 20px-radius card scaled to .98 travels several
+     pixels at its corners, which is plenty; the same figure on a small pill
+     would look like it collapsed. */
+  .card:active{transform:scale(.985);
+    transition:transform var(--t-press) var(--e-press)}
+  .proj:active{transform:scale(.982);
+    transition:transform var(--t-press) var(--e-press)}
+
+  /* The Telegram card is the most-pressed thing on the page, so it answers
+     with its mark as well as its body - the tile dips a little further than
+     the card around it, which reads as the icon being the button. */
+  .tg:active{transform:scale(.985);
+    transition:transform var(--t-press) var(--e-press)}
+  .tg:active .tg__ic{transform:scale(.94);
+    transition:transform var(--t-press) var(--e-press)}
+
+  /* Text links have no box to compress, so they take the press on their
+     colour instead. */
+  .foot__mail:active,.contacts a:active,.foot__nav a:active{opacity:.62;
+    transition:opacity var(--t-press) var(--e-press)}
+  .foot__tg:active{transform:scale(.97);
+    transition:transform var(--t-press) var(--e-press)}
+  .foot__up:active{opacity:.62}
+  .portal__skip:active{transform:scale(.96);
+    transition:transform var(--t-press) var(--e-press)}
+
+  /* The icon plate tilts on hover on a desktop. There is no hover here, and a
+     tilt is not a press, so the plate simply holds still - stated explicitly
+     because the hover rule is not width-scoped. */
+  .card:hover .card__ico{transform:none}
+}
+
+/* Somebody who has asked for less motion gets the same feedback without the
+   movement: the press is still answered, in opacity, which is not motion. */
+@media (pointer:coarse) and (prefers-reduced-motion:reduce){
+  .card:active,.proj:active,.tg:active,.tg:active .tg__ic,
+  .foot__tg:active,.portal__skip:active{transform:none;opacity:.82}
+}
+
+
+/* ===========================================================================
+   7. THE CODE PANEL AS A THING YOU PAN
+   ===========================================================================
+   The snippets are written to 65 columns. At 390px that is about 100px wider
+   than the panel, so the ends of the longer comment lines sit off-screen.
+
+   components/terminal.css already made the right call - `overflow-x:auto` with
+   `overscroll-behavior-x:contain`, so the line is reachable and panning it does
+   not drag the page sideways. Two things were missing for a finger.
+
+   FIRST, the pan has to be declared. Without `touch-action`, the browser waits
+   to see whether a horizontal drag is going to become a vertical scroll before
+   it commits, and that hesitation is felt as the panel sticking. `pan-x pan-y`
+   says both axes are ours and neither needs arbitration.
+
+   SECOND, an off-screen line has to look off-screen. A phone has no scrollbar
+   at rest, so the panel needs to say, at a glance, that there is more line to
+   the right - otherwise it reads as a clipped screenshot, which is precisely
+   what the comment above `.term__body` says it must never be. A fade over the
+   right edge does that in one composited layer, and it is a mask rather than a
+   gradient overlay so it works over the panel's own background without having
+   to know its colour. */
+@media (max-width:900px){
+  .term__body{touch-action:pan-x pan-y}
+  .term__code{
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent)}
+
+  /* The tab strip is the same gesture, and it gets the same declaration so the
+     two do not arbitrate against each other when a thumb starts on the bar. */
+  .term__tabs{touch-action:pan-x}
+}
+
+
+/* ===========================================================================
+   8. THE STRIP ABOVE THE FLOATING BAR
+   ===========================================================================
+   The header is a capsule that floats with a gap above it, and the gap is
+   deliberately see-through - the page belongs to the page, not to the chrome.
+   On a wide screen that gap is a thin band of background and it reads as air.
+
+   On a phone it does not. The bar is 60px in a 844px screen with 16px of gutter
+   above it, and the content underneath is 16px body copy set the full width of
+   the viewport. What appears in that gap is the top third of a line of Russian
+   text, sliced horizontally, scrolling. It is the single least finished thing
+   on the page at this width - visible in every scrolled screenshot taken
+   during this pass.
+
+   The fix is not to make the gap opaque, which would turn a floating capsule
+   into a solid bar and lose the one idea the header has. It is to let the page
+   dissolve into the top edge instead of being cut by it: a short gradient of
+   the page's own paper, behind the capsule and above the content.
+
+   WHY IT IS ON .head::after. .head is already fixed, full width and above the
+   content, so the strip inherits the position it needs for free. ::before is
+   taken - base/lite.css swaps the blur on it - and .head__in::before is the
+   capsule's own film. ::after is free, and being a child of a pointer-events:
+   none element it cannot take a tap that belongs to the page.
+
+   It fades to transparent rather than ending, and its height follows the notch,
+   so on a device with a status bar the dissolve starts above the capsule rather
+   than level with it. */
+@media (max-width:900px){
+  .head::after{
+    content:"";position:absolute;z-index:-1;
+    left:0;right:0;top:0;
+    height:calc(var(--head-h) + env(safe-area-inset-top) + 26px);
+    pointer-events:none;
+    background:linear-gradient(180deg,
+      var(--paper) 0%,
+      color-mix(in srgb,var(--paper) 72%,transparent) 46%,
+      transparent 100%);
+    /* The bar compacts on scroll, so the strip compacts with it rather than
+       stepping. Same token as the capsule's own height transition. */
+    transition:height var(--t-m) var(--e-out)}
+}
+
+/* The scene owns the whole frame, and a strip of paper across the top of it
+   would be a horizon line drawn over a hero that has no horizon. The dissolve
+   is only needed where there is text to be sliced.
+
+   `:not(.portal-done)` is doing real work here. portal.js writes portal-live at
+   the first pixel of the track and NEVER takes it off again - portal-done is
+   the one-way latch that says the scene has been handed over. Keying on
+   portal-live alone therefore switched the strip off for the whole document
+   below the hero, which is precisely where it is needed; caught in the walk at
+   390px, where the top line of the competencies list was still being sliced
+   with the strip supposedly in place. */
+@media (max-width:900px){
+  html.portal-live:not(.portal-done) .head::after{opacity:0}
+  .head::after{transition:height var(--t-m) var(--e-out),opacity .45s var(--e-out)}
+}

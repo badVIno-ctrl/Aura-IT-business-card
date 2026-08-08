@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Background-diagnostics page. Useful when a phone renders the light theme
+# wrong; useless in a search result.
+Disallow: /diag.html
+
+Sitemap: https://aurait.onrender.com/sitemap.xml

@@ -1,0 +1,116 @@
+/* Portfolio — a bento of cases, each in its own colour
+   ---------------------------------------------------------------------------
+   What was here before: six identical cards in a 3×2 grid. Every case got the
+   same box, the same preview height and the same blue, which read as a list of
+   things rather than as a body of work — and it quietly said that all six were
+   the same size of job.
+
+   Two changes fix that.
+
+   THE RHYTHM. Six columns, and a case takes four of them, two of them, or all
+   six. That gives the section three points of attention (the flagship, the
+   design case, the closing strip) and lets the rest tile between them, so the
+   eye is led rather than left to scan. The sizes are classes, not per-card
+   positions: the cards are placed by the grid's own auto-placement in the order
+   they are declared in portfolio.js, which is why adding a tenth case is a line
+   of data and not a re-plan of the layout.
+
+   THE COLOUR. Each case declares one number, --h, its hue angle. The wash under
+   its preview, the chip above its title, the link at the bottom and the rim it
+   lights up with are all built from that angle and the four tone tokens the
+   theme sets — see the note on --tone-l in base/tokens.css. The preview itself
+   is drawn in the same hue by portfolio.js, from the one hex that is the same
+   colour, so a card is a single study rather than a stock illustration with a
+   coloured border.
+
+   The rim is the border, painted by the second background layer; see the note at
+   the top of components/buttons.css before changing either. */
+
+.wgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:clamp(14px,1.6vw,20px);
+  /* A row is what a small case is tall; the two tall cases span two of them.
+     minmax(...,auto) rather than a fixed height so a long Russian title can
+     still push its own row without cropping. */
+  grid-auto-rows:minmax(196px,auto)}
+
+/* The four sizes. Nothing here names a row or a column: order does the rest. */
+.proj--hero{grid-column:span 4;grid-row:span 2}
+.proj--tall{grid-column:span 2;grid-row:span 2}
+.proj--sm{grid-column:span 2}
+.proj--wide{grid-column:span 6}
+
+.proj{position:relative;isolation:isolate;text-align:left;
+  display:flex;flex-direction:column;
+  /* The hue a case did not declare. Brand blue, so a missing --h is a card that
+     looks deliberate rather than broken. */
+  --h:258;
+  border:1.5px solid transparent;border-radius:18px;padding:14px;
+  background:var(--btn-quiet) padding-box,var(--btn-quiet-rim) border-box;
+  cursor:pointer;font:inherit;color:inherit;
+  box-shadow:inset 0 1px 0 var(--gloss),0 14px 32px -26px rgba(var(--sh),.9);
+  transition:transform var(--t-f) var(--e-out),box-shadow var(--t-f) var(--e-out)}
+.proj::before{content:"";position:absolute;z-index:-1;inset:0;border-radius:inherit;
+  opacity:0;background:var(--btn-quiet-h);transition:opacity var(--t-f) var(--e-out)}
+.proj:hover::before,.proj:focus-visible::before{opacity:1}
+.proj:hover{transform:translateY(-5px);
+  box-shadow:inset 0 1px 0 var(--gloss-2),
+    0 0 0 1.5px color-mix(in srgb,var(--c-blue) 30%,transparent),
+    0 34px 56px -34px rgba(var(--sh),var(--sh-strong))}
+/* The lit rim in the case's own colour. Second declaration on purpose: a
+   browser that cannot read oklch keeps the blue rim above. */
+.proj:hover{
+  box-shadow:inset 0 1px 0 var(--gloss-2),
+    0 0 0 1.5px oklch(var(--tone-l) var(--tone-c) var(--h) / .42),
+    0 34px 56px -34px rgba(var(--sh),var(--sh-strong))}
+.proj:active{transform:translateY(-1px) scale(.994);transition-duration:var(--t-press)}
+.proj:focus-visible{outline:0;box-shadow:var(--ring)}
+
+/* --- the preview ---------------------------------------------------------
+   Each thumbnail is a generated diagram of that case, not a stock icon, and it
+   is mounted on a wash of its own hue rather than cropped to fill the card.
+   Letterboxed on purpose: a card can be two rows tall or a full-width strip,
+   and a drawing that is *fitted* is the only one that survives both without
+   being stretched or having its edges cut off. */
+.proj__vis{position:relative;flex:1 1 auto;min-height:116px;display:grid;
+  border-radius:12px;overflow:hidden;padding:clamp(8px,.9vw,13px);
+  background:var(--vis-bg);
+  background:linear-gradient(148deg,
+    oklch(var(--tone-wl) var(--tone-wc) var(--h)),
+    oklch(var(--tone-w2l) var(--tone-w2c) var(--h)))}
+.proj__vis svg{width:100%;height:100%;display:block;border-radius:7px;
+  box-shadow:0 12px 26px -20px rgba(var(--sh),.85)}
+
+.proj__txt{padding:13px 5px 3px}
+/* The chip is where a case wears its colour at rest — the rim only appears on
+   hover, and a phone has no hover at all. */
+.proj__tag{display:inline-block;font-family:var(--f-m);font-size:10.5px;
+  letter-spacing:.09em;text-transform:uppercase;padding:4px 9px;border-radius:999px;
+  color:var(--c-blue);background:color-mix(in srgb,var(--c-blue) 14%,transparent);
+  color:oklch(var(--tone-l) var(--tone-c) var(--h));
+  background:oklch(var(--tone-l) var(--tone-c) var(--h) / .14)}
+.proj h3{font-size:17px;color:var(--ink);margin-top:11px}
+.proj p{color:var(--ink-3);font-size:13.5px;margin-top:6px}
+.proj__go{margin-top:13px;display:inline-flex;align-items:center;gap:7px;
+  font-family:var(--f-d);font-weight:600;font-size:13.5px;
+  color:var(--c-blue);color:oklch(var(--tone-l) var(--tone-c) var(--h))}
+.proj__go svg{transition:transform var(--t-f) var(--e-out)}
+.proj:hover .proj__go svg{transform:translateX(4px)}
+
+/* --- the flagship --------------------------------------------------------
+   Four columns and two rows of it, so its preview is the one drawing on the
+   page big enough to be read rather than recognised. The type steps up with it;
+   a headline sized for a small card looks abandoned in a box this size. */
+.proj--hero{padding:18px}
+.proj--hero .proj__vis{min-height:210px}
+.proj--hero h3{font-size:21px;margin-top:13px}
+.proj--hero p{font-size:14.5px;max-width:52ch}
+
+/* --- the closing strip ---------------------------------------------------
+   Full width and side by side: the section ends on a line rather than on a
+   ragged row, and a case about infrastructure is the right one to read as a
+   long horizontal thing. */
+.proj--wide{flex-direction:row;align-items:center;gap:clamp(14px,2vw,26px);padding:16px}
+.proj--wide .proj__vis{flex:0 0 40%;min-height:150px}
+.proj--wide .proj__txt{padding:0;max-width:56ch}
+.proj--wide h3{margin-top:9px}
+
+.note{margin-top:var(--sp-3);font-size:13.5px;color:var(--ink-3)}

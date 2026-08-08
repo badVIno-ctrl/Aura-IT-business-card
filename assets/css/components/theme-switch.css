@@ -1,0 +1,102 @@
+/* Theme switch
+   ---------------------------------------------------------------------------
+   The old control was a stock sun/moon slider from a component gallery: an
+   amber blob that slid over to become a crescent, in two colours that appear
+   nowhere else on this site. It was recognisable as somebody else's component,
+   which is the one thing a control in the header cannot be.
+
+   This one is built out of what the rest of the page is built out of: a sunken
+   track in the page's own surface colour, and one lit object travelling on it
+   with the same face, rim and glow as the buttons. It is the smallest member of
+   the button family, not a separate species.
+
+   HOW THE TWO STATES READ
+
+   Both icons are always present, one at each end of the track — so the control
+   states its two options rather than showing one and hiding the other. The knob
+   sits on the *current* one and lights it; the far icon stays dim. So the
+   answer to "what is this?" and "where am I?" is one glance, and the answer to
+   "what happens if I press it?" is the icon the knob is not covering.
+
+   Checked = dark, because dark is this site's default and the control ships
+   checked. theme.js owns `checked`, `aria-checked` and the label text; nothing
+   here may assume a starting state, since the theme is applied from
+   localStorage by an inline script before this stylesheet ever paints. */
+
+.tsw{
+  position:relative;display:block;flex:none;
+  width:58px;height:32px;
+  border-radius:999px;
+  /* Touch: the visible control stays 58×32, but the hit area is padded out to
+     the 44px minimum by the input, which is what actually receives the tap. */
+  -webkit-tap-highlight-color:transparent}
+
+/* The input keeps every native behaviour — keyboard, form semantics, the
+   accessibility tree — and gives up only its painting. It is also the hit
+   target, so it is the thing that gets stretched on a touch device. */
+.tsw input{
+  position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:100%;height:100%;min-width:100%;min-height:100%;
+  margin:0;padding:0;opacity:0;cursor:pointer;z-index:2}
+
+.tsw__track{
+  position:absolute;inset:0;border-radius:inherit;overflow:hidden;
+  background:var(--surf-3);
+  border:1px solid var(--edge);
+  box-shadow:inset 0 1px 3px rgba(var(--sh),.28);
+  transition:background var(--t-f) var(--e-out),border-color var(--t-f) var(--e-out)}
+
+/* --- the two options ------------------------------------------------------
+   Absolutely placed on the two ends and *behind* the knob, so the knob covers
+   the active one instead of the stylesheet having to hide it. */
+.tsw__ico{position:absolute;top:50%;width:16px;height:16px;margin-top:-8px;
+  display:grid;place-items:center;color:var(--ink-3);opacity:.5;
+  transition:color var(--t-f) var(--e-out),opacity var(--t-f) var(--e-out)}
+.tsw__ico svg{display:block;width:14px;height:14px;
+  fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tsw__ico--sun{left:7px}
+.tsw__ico--moon{right:7px}
+/* The icon under the knob is the current mode: it goes to full strength and
+   picks up the brand hue, so the travelling object always lands on something
+   lit rather than on an empty end. */
+.tsw input:checked ~ .tsw__track .tsw__ico--moon,
+.tsw input:not(:checked) ~ .tsw__track .tsw__ico--sun{color:var(--c-sky-l);opacity:1}
+
+/* --- the knob ------------------------------------------------------------
+   Same construction as .btn--p: a gradient face inside a gradient rim, a
+   highlight on its top edge and a pool of brand light under it. Travel and
+   squash are separate transitions so a press does not interrupt a slide. */
+.tsw__knob{
+  position:absolute;top:3px;left:3px;
+  width:24px;height:24px;border-radius:50%;
+  border:1px solid transparent;
+  background:var(--btn-face) padding-box,var(--btn-rim) border-box;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.5),
+    0 2px 6px -2px rgba(var(--sh),.55),
+    0 6px 16px -8px rgba(var(--btn-glow),.85);
+  transition:transform var(--t-m) var(--e-drawer),
+             box-shadow var(--t-f) var(--e-out),
+             width var(--t-press) var(--e-press)}
+.tsw input:checked ~ .tsw__track .tsw__knob{transform:translateX(26px)}
+
+/* Hover lights the pool under the knob; it does not move, because the only
+   movement this control has is the one the user causes. */
+.tsw:hover .tsw__knob{
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.6),
+    0 2px 6px -2px rgba(var(--sh),.5),
+    0 10px 24px -8px rgba(var(--btn-glow),.95)}
+.tsw:hover .tsw__track{border-color:color-mix(in srgb,var(--c-blue) 42%,var(--edge))}
+
+/* A physical toggle stretches along its axis of travel under a thumb. The
+   right-hand state has to be nudged back by the same amount it grows, or the
+   knob would push out through the end of the track. */
+.tsw input:active ~ .tsw__track .tsw__knob{width:28px}
+.tsw input:checked:active ~ .tsw__track .tsw__knob{transform:translateX(22px)}
+
+.tsw input:focus-visible ~ .tsw__track{box-shadow:var(--ring);border-color:var(--c-blue)}
+
+@media (prefers-reduced-motion:reduce){
+  .tsw__knob,.tsw__track,.tsw__ico{transition-duration:.01ms}
+}

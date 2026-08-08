@@ -1,0 +1,116 @@
+/* The thread — one line, the length of the site
+   ---------------------------------------------------------------------------
+   The mark is three waves. The seams between the sections are the same three
+   waves seen edge-on. The thread is what is left when you keep pulling on one
+   of them: a single line down the left margin that runs from the moment the
+   visitor comes through the portal to the moment the page ends.
+
+   It is not decoration with a second job bolted on — it is a map. Its full
+   length is the document; the lit part is what has been read; the bead is where
+   the visitor is standing; the notches are the sections, and they light as they
+   are passed. Everything a progress bar says, said by the object the brand is
+   already made of.
+
+   WHERE IT LIVES. Fixed to the right margin — the side the scrollbar is on and
+   the side the eye leaves a line on, so it reads as an instrument rather than
+   as a stray rule beside the text — and starting below the header so it can
+   never cross the bar. Its own channel is wider than the gutter it used to sit
+   in, because a line that swings needs room to swing in. It takes no pointer events: the header owns navigation,
+   and a second, thinner set of click targets at the edge of the screen would be
+   a trap rather than a shortcut.
+
+   WHEN IT ARRIVES. Not on load. The line is born out of the portal's exposure
+   beat — `portal-done` is written once the visitor is through — and it draws
+   itself in from the top over about a second and a half. On a page where the
+   portal never runs at all (reduced motion) `portal-off` is written instead and
+   the line is simply already there.
+
+   WHERE IT IS NOT. Under 1180px there is no gutter worth the name: the line
+   would either sit on the text or hang off the edge of the screen. It is not
+   drawn at all, and thread.js never starts its loop. */
+
+.thread{
+  position:fixed;z-index:2;pointer-events:none;
+  right:0;left:auto;width:clamp(40px,4.6vw,68px);
+  top:clamp(78px,9vw,98px);
+  height:calc(100vh - clamp(78px,9vw,98px) - clamp(18px,3vh,30px));
+  height:calc(100svh - clamp(78px,9vw,98px) - clamp(18px,3vh,30px));
+  opacity:0;transition:opacity 1.2s var(--e-out)}
+
+html.portal-done .thread,
+html.portal-off .thread{opacity:1}
+
+.thread__svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;
+  fill:none;stroke-linecap:round;stroke-linejoin:round}
+
+/* The whole document, at rest. Faint enough to be a rule in the margin rather
+   than a second column of content. */
+.thread__bed{stroke:url(#thG);stroke-width:1.5;opacity:.22}
+
+/* What has been read. Same gradient, same geometry, drawn over it. */
+.thread__lit{stroke:url(#thG);stroke-width:2.6;opacity:.95}
+
+/* Where the visitor is. The seams already use --proc-head for the light that
+   runs along them, so the bead is the same light, on the same errand. */
+.thread__bead{fill:var(--proc-head);stroke:none}
+.is-rich .thread__bead{filter:drop-shadow(0 0 6px rgba(var(--enter-air),.85))}
+
+/* The sections. Off is a hairline dot; on is the brand's own blue. The
+   transition is what makes passing a section feel like an event without
+   anything moving. */
+.thread__mark{fill:var(--edge);opacity:.9;
+  transition:fill .45s var(--e-out),r .45s var(--e-out)}
+.thread__mark.on{fill:var(--c-sky)}
+
+/* --- the notches as a way back --------------------------------------------
+   The rail reports position; the notches also return you to it. The wrapper
+   still takes no pointer events — a fixed strip down the edge of the window
+   that swallows clicks is a trap — so the links, and only the links, switch
+   them back on. The target is a transparent 26px circle over a 2.4px dot,
+   because the dot is an instrument reading and the target is a control, and
+   they are not obliged to be the same size. */
+.thread__jump{pointer-events:auto;cursor:pointer}
+.thread__hit{fill:transparent;stroke:none}
+.thread__jump:hover .thread__mark,
+.thread__jump:focus-visible .thread__mark{fill:var(--c-sky);r:4.6}
+.thread__jump:focus{outline:none}
+.thread__jump:focus-visible .thread__hit{
+  stroke:rgba(var(--enter-air),.6);stroke-width:1.5}
+
+/* The name, drawn outside the rail's own box and into the page. It is stroked
+   in the page colour underneath itself — paint-order puts the stroke first —
+   so it stays legible over whatever it happens to be passing. */
+.thread__label{
+  font-family:var(--f-m);font-size:9.5px;letter-spacing:.14em;
+  text-transform:uppercase;fill:var(--ink-2);
+  paint-order:stroke;stroke:var(--paper);stroke-width:3.5px;stroke-linejoin:round;
+  opacity:0;transform:translateX(7px);
+  transition:opacity .3s var(--e-out),transform .3s var(--e-out)}
+.thread__jump:hover .thread__label,
+.thread__jump:focus-visible .thread__label{opacity:1;transform:translateX(0)}
+.is-rich .thread__mark.on{filter:drop-shadow(0 0 5px rgba(var(--enter-air),.7))}
+
+/* The birth. `pathLength` is set to 100 on the element, so the dash units are
+   percentages of the line no matter how tall the window is and this animation
+   never has to know a single pixel. */
+.thread__bed{stroke-dasharray:100;stroke-dashoffset:100}
+html.portal-done .thread__bed{stroke-dashoffset:0;
+  transition:stroke-dashoffset 1.5s var(--e-out) .1s}
+html.portal-off .thread__bed{stroke-dashoffset:0}
+
+/* The end of the line. When the bead reaches the last notch the signature in
+   the footer picks the light up — the thread arrives somewhere instead of
+   stopping. */
+.foot__sign{transition:filter .8s var(--e-out)}
+html.thread-end .is-rich .foot__sign,
+.is-rich html.thread-end .foot__sign{filter:drop-shadow(0 0 14px rgba(var(--enter-air),.5))}
+
+@media (max-width:1180px){
+  .thread{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .thread{transition:none}
+  .thread__bed{stroke-dashoffset:0!important;transition:none!important}
+  .thread__mark{transition:none}
+}

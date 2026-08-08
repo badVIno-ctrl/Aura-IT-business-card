@@ -1,0 +1,340 @@
+/* The portal — the hero as a scene the visitor scrolls through
+   ---------------------------------------------------------------------------
+   The hero used to be one screen that faded as the page moved under it. It is
+   now a scene with a length of its own: a tall track with a pinned stage inside
+   it, and a single number — the fraction of that track that has been scrolled —
+   driving everything in the frame.
+
+   WHAT THE SCENE SAYS. The site promises one thing: «Делаем весь IT — от
+   дизайна до серверов». The mark above it is three waves. So the scene performs
+   the sentence instead of decorating it — the three waves come apart into the
+   three layers they stand for, name themselves, and the camera flies forward
+   through them in the order the sentence reads. What is left converges into the
+   wave seam the rest of the page is built from.
+
+     1. SQUARE   the page's words leave, the mark centres and faces us
+     2. SPLIT    the stack comes apart, the three layers name themselves
+     3. TRAVEL   forward through design → development → infrastructure
+     4. SEAM     the remains gather into the seam that starts the page
+
+   WHERE THE WORK IS DONE. Acts 1 to 3 are geometry and belong entirely to the
+   canvas — assets/js/modules/hero-aura.js reads the same progress and flies the
+   camera with it. This file owns four things and no more: the pin, the words
+   leaving, the caption rail, and the light on the seam. Nothing here animates a
+   property that can invalidate layout.
+
+   WHAT IS NO LONGER HERE. The canvas used to be scaled by the stylesheet to
+   fake the flight, and a full-screen radial gradient used to be flashed over
+   the top of it. Both are gone. The scale magnified the ribbons' own linework
+   until it was band rather than line, and the flash was a white sheet that said
+   "something happened" without ever saying what. The camera is now a real
+   camera inside the projection, and the light is a band along the seam.
+
+   WHY THE TRACK IS A SEPARATE ELEMENT. `position:sticky` pins against the
+   nearest scrolling ancestor for exactly as far as its container allows, so the
+   length of the scene is one number in one place — `--portal-len` — and the
+   document below it is untouched. Remove the class this file keys off and the
+   hero is a plain one-screen hero again, with the markup unchanged. */
+
+:root{
+  /* How far past the first screen the scene runs. Two screens of travel is the
+     shortest length in which four acts can each be felt as its own beat —
+     under that the split and the flight arrive together — and it is short
+     enough that the first section is one throw of the wheel away. */
+  --portal-len:210svh;
+
+  /* Written by portal.js, read here and nowhere else.
+       --pp     scene progress, 0 at the top and 1 at the handover
+       --pwords how far the hero's own copy has left
+       --prig   the measure marks
+       --pland  the handover to the page
+       --pseam  where the page's own seam is, in fractions of a screen
+       --pbeam  the light along the seam
+       --pcue   the scroll cue's presence
+       --pskip  the skip control's presence */
+  --pp:0;
+  --pwords:0;
+  --prig:0;
+  --pland:0;
+  --pseam:1;
+  --pbeam:0;
+  --pcue:1;
+  --pskip:0;
+}
+
+.portal{position:relative;z-index:1}
+.portal__stage{position:relative}
+
+/* The track and the pin. `svh` rather than `vh`: on a phone the URL bar
+   collapses on the first scroll, and a stage measured against the *large*
+   viewport would grow a strip of empty page underneath itself at exactly the
+   moment the scene starts. The plain `vh` line before it is the fallback for
+   engines without the small-viewport units. */
+html.portal-on .portal{height:calc(100vh + var(--portal-len));height:calc(100svh + var(--portal-len));
+  /* Dropped a level, and this line is load-bearing. `.portal` ships at
+     z-index 1, which paints the track above the first section, because
+     that section is z-index auto and auto is painted a step earlier than
+     any positive layer. The hero inside the track has an opaque floor of
+     its own - background-color: var(--paper), so the seam has something to
+     sit against - and with the page now pulled up underneath the track,
+     that floor covered the section edge to edge. Everything measured as
+     visible, at opacity 1, and the screen was still blank.
+
+     At 0 the track is painted in document order along with the auto
+     layers, so the section after it is drawn on top - which is what a
+     hand-over needs: the page arrives over the scene, not behind it. The
+     seam keeps its own z-index 1 and still floats above them both. */
+  z-index:0}
+html.portal-on .portal__stage{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;
+  /* The seam light is a screen blend. Isolating the stage keeps it blending
+     against the scene and not against whatever the page paints behind it. */
+  isolation:isolate}
+html.portal-on .portal__stage .hero{min-height:100%;height:100%}
+
+/* --- the hand-over -------------------------------------------------------
+   Progress reaches 1 when the track has been scrolled by its height minus
+   one viewport, but the page underneath only begins at the track's bottom
+   edge - a whole screen further down. That screen is the blank one: the
+   scene has finished, the stage has faded to nothing, and there is still a
+   viewport of empty track to scroll through before anything else arrives.
+   Measured at 900px on a 1440x900 desktop and 844px on a 390x844 phone,
+   where the scene itself is only 523px long - the nothing was longer than
+   the animation.
+
+   So the page is pulled up by exactly one stage. `p = 1` and `the seam is at
+   the top of the screen` become the same instant. Nothing is skipped and
+   nothing is shortened - the scene is as long as it ever was, it just no
+   longer has a screen of nothing behind it.
+
+   The margin sits on the seam rather than on <main> so it moves everything
+   after the track as one block and leaves the track's own geometry - which
+   is what the pin and the progress are measured from - untouched. */
+html.portal-on .portal + .wsep{margin-top:-100vh;margin-top:calc(-1 * 100svh)}
+
+/* What has been pulled up has to stay out of sight until the scene wants it,
+   and it has to do that WITHOUT anything opaque laid over it: the stage is
+   transparent by design, the fixed wave field shows through it, and the
+   flight throws that field apart. Cover the page with a sheet of paper and
+   the field goes with it. `visibility` takes it out of the paint without
+   touching layout, so the seam is already in its final position, to the
+   pixel, at the moment it is asked to appear.
+
+   Every sibling after the track, not a counted first two: on a short
+   landscape viewport the first section cannot fill the screen it was pulled
+   into and the next seam creeps into frame behind the scene. Following the
+   document costs nothing and cannot be caught out by a viewport I did not
+   think to measure. */
+html.portal-on .portal ~ *{visibility:hidden}
+
+/* And then it arrives on the scene's own `land` act rather than on a timer
+   of its own - the same number that takes the light out brings the page in,
+   so this is one dissolve and not two animations that happen to overlap.
+
+   `portal-done` is latched one-way at the end of the scene and is repeated
+   here deliberately. Hiding the whole document behind a class is only safe
+   if there is a second, independent way for it to come back; without this
+   line one missed write of `portal-hand` would leave the site blank. */
+html.portal-hand .portal ~ *,
+html.portal-done .portal ~ *{visibility:visible}
+html.portal-hand .portal + .wsep,
+html.portal-hand .portal + .wsep + .sec{opacity:var(--pland,1)}
+
+/* Paint order is settled above; hit-testing is a separate question. The
+   track is three screens of element lying across the section for the whole
+   hand-over, and the hero's buttons are inside it at opacity 0 - which is
+   still perfectly clickable. Between them they would quietly swallow every
+   click meant for the section underneath. The rule belongs on the track and
+   not the stage: hit-testing the middle of the first heading with this on
+   `.portal__stage` alone still came back with the track. By the hand-over
+   the only control inside, the skip button, has been gone for a third of
+   the scene. */
+html.portal-pass .hero__in{pointer-events:none}
+html.portal-hand .portal,
+html.portal-done .portal{pointer-events:none}
+
+/* --- act 1: the words leave ----------------------------------------------
+   Applied to the column and not to the headline: the entry scene owns the
+   transforms of #h1, the lead and the buttons, and two owners of one transform
+   is a fight neither can win. A parent's transform composes with a child's
+   instead of replacing it, so the two gestures stack cleanly.
+
+   Driven by its own channel rather than by raw progress. The copy is gone by a
+   sixth of the track — long before the stack comes apart — because a headline
+   still crossing the frame while the layers separate is the one thing that
+   reads as two unrelated animations instead of one shot. */
+html.portal-on .hero__in{
+  transform:translate3d(0,calc(var(--pwords) * -13vh),0);
+  opacity:calc(1 - var(--pwords))}
+html.portal-live .hero__in{will-change:transform,opacity}
+
+/* The canvas is masked away over its last 14% so the hero can hand a flat floor
+   to the seam below it. During the scene there is no seam on screen — the stage
+   is the whole viewport — and the mask would cut the frame off along a straight
+   horizontal edge at the exact moment the camera is travelling through it. */
+html.portal-live #ring{-webkit-mask-image:none;mask-image:none}
+
+/* --- the caption rail -----------------------------------------------------
+   Three labels hung off the three layers. Real DOM, in the page's own
+   typefaces, selectable and readable aloud — text painted into a canvas is a
+   picture of words, and this scene's whole argument is carried by these nine
+   words, so they are typeset rather than drawn.
+
+   portal.js writes `transform` and `opacity` straight onto each figure from the
+   position its layer actually projected to, which is why neither is declared
+   here. Everything else — the offset from the anchor, the type, the hairline —
+   is static and belongs in the stylesheet. */
+.portal__rail{position:absolute;inset:0;z-index:4;pointer-events:none;
+  /* A caption flipped to the left of an anchor near the edge would otherwise
+     be able to widen the document. */
+  overflow:hidden}
+
+.pcall{position:absolute;top:0;left:0;width:238px;height:74px;margin:-9px 0 0 18px;
+  opacity:0;visibility:hidden;
+  will-change:transform,opacity}
+
+/* The hairline is the callout's whole conceit: it connects the label to the
+   exact point on the wave it is naming, and it fades out at the far end so it
+   reads as a leader line rather than as a border. */
+.pcall__rule{position:absolute;left:0;top:9px;width:30px;height:1px;
+  background:linear-gradient(90deg,rgba(var(--enter-air),0),var(--c-blue))}
+.pcall__no{position:absolute;left:40px;top:3px;
+  font:600 10px/1 var(--f-m);letter-spacing:.16em;color:var(--c-sky)}
+.pcall__t{position:absolute;left:40px;top:18px;white-space:nowrap;
+  font:600 16px/1.15 var(--f-d);letter-spacing:-.012em;color:var(--ink)}
+.pcall__s{position:absolute;left:40px;top:40px;width:198px;
+  font:400 11.5px/1.4 var(--f-t);color:var(--ink-3)}
+
+/* Hung on the other side when the anchor is close to the right edge. Mirrored
+   rather than squeezed: a caption that wraps to two lines on one layer and one
+   on the next makes the three of them look unrelated. */
+.pcall--flip{margin-left:-256px}
+.pcall--flip .pcall__rule{left:auto;right:0;
+  background:linear-gradient(270deg,rgba(var(--enter-air),0),var(--c-blue))}
+.pcall--flip .pcall__no,
+.pcall--flip .pcall__t,
+.pcall--flip .pcall__s{left:auto;right:40px;text-align:right}
+
+/* Narrow: there is no room either side of a mark drawn near the middle of a
+   390px frame, so the leader line is dropped and the captions sit in a fixed
+   gutter, still tracking their own layer's height. portal.js supplies the
+   class along with the fixed x. */
+/* Every child of a caption is absolutely positioned, so `height:auto` collapses
+   the box to nothing. Harmless on screen, but it means the cell no longer has
+   an honest size to reason about — given a real one it matches the desktop
+   cell and sits inside the 84px rhythm the rail places it on. */
+.pcall--stack{width:min(74vw,290px);height:74px;margin:-8px 0 0 0}
+.pcall--stack .pcall__rule{display:none}
+.pcall--stack .pcall__no,
+.pcall--stack .pcall__t,
+.pcall--stack .pcall__s{left:0;right:auto;text-align:left}
+.pcall--stack .pcall__s{width:min(74vw,290px)}
+
+/* --- act 4: the light on the seam ----------------------------------------
+   A band the height of the seam, across the middle of the stage, screen-blended
+   so it adds light to the frame rather than covering it. It belongs to the line
+   the canvas is drawing there: it rises as the layers converge onto it and is
+   taken back out as the page lands, so the first section is never read through
+   a milky sheet.
+
+   Its alpha is held well under a white-out and it rises and falls once across a
+   scroll the visitor controls — there is no repeating pulse here and nothing
+   that can flash at a hazardous rate. */
+.portal__beam{position:absolute;left:0;right:0;top:calc((.5 + (var(--pseam,1) - .5) * var(--pland,0)) * 100%);z-index:3;pointer-events:none;
+  height:clamp(56px,11vh,132px);transform:translateY(-50%);
+  opacity:var(--pbeam);
+  background:linear-gradient(180deg,
+    rgba(var(--enter-air),0) 0%,
+    rgba(var(--enter-air),.13) 34%,
+    rgba(var(--enter-glow),.30) 50%,
+    rgba(var(--enter-air),.13) 66%,
+    rgba(var(--enter-air),0) 100%);
+  /* Faded off at both ends so the light stops where the drawn line stops. A
+     band running the full width of the viewport is a horizontal smear; this
+     one belongs to the seam underneath it. */
+  -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 80%,transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 20%,#000 80%,transparent 100%);
+  mix-blend-mode:screen}
+
+/* --- the invitation -------------------------------------------------------
+   A scene that only exists if you scroll has to say so, once, quietly, and then
+   never again: the cue is gone by 6% of the track. No progress bar and no
+   percentage — the stack coming apart *is* the progress. */
+.portal__cue{position:absolute;left:50%;bottom:clamp(16px,3.2vh,32px);z-index:5;
+  transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  font:500 10px/1 var(--f-t);letter-spacing:.26em;text-transform:uppercase;
+  color:var(--ink-3);opacity:var(--pcue);pointer-events:none}
+.portal__cue i{display:block;width:1px;height:30px;
+  background:linear-gradient(180deg,transparent,var(--c-blue));
+  animation:cueFall 2.6s var(--e-out) infinite}
+@keyframes cueFall{
+  0%{opacity:0;transform:translateY(-9px)}
+  38%{opacity:1}
+  100%{opacity:0;transform:translateY(11px)}}
+
+/* --- the way out ----------------------------------------------------------
+   Somebody who came for the phone number must not have to sit through a film to
+   find it. The control is real, focusable, and jumps the whole track. */
+.portal__skip{position:absolute;right:clamp(14px,3vw,34px);bottom:clamp(14px,2.8vh,28px);z-index:6;
+  appearance:none;-webkit-appearance:none;cursor:pointer;
+  padding:9px 15px;border-radius:999px;
+  border:1px solid var(--edge);background:var(--glass);color:var(--ink-2);
+  font:500 12px/1 var(--f-t);letter-spacing:.03em;
+  opacity:var(--pskip);
+  transition:background var(--t-f) var(--e-out),color var(--t-f) var(--e-out),
+             border-color var(--t-f) var(--e-out),opacity .5s var(--e-out)}
+.portal__skip:hover{background:var(--surf-2);color:var(--ink);border-color:var(--c-blue)}
+.portal__skip:active{transform:scale(.97)}
+.portal__skip:focus-visible{outline:none;box-shadow:var(--ring)}
+/* Invisible is not the same as gone: a control at zero opacity still takes
+   clicks and still stops the Tab key. */
+html.portal-late .portal__skip,
+html:not(.portal-live) .portal__skip{pointer-events:none;visibility:hidden}
+
+/* --- the header gets out of the way --------------------------------------
+   Only through the pass, and only its opacity: the bar owns its own height and
+   its own wash, and moving it would fight the density change it makes on
+   scroll. */
+html.portal-pass #head{opacity:0!important;pointer-events:none}
+#head{transition:opacity .5s var(--e-out)}
+
+/* Nothing above exists without the class portal.js writes. */
+html:not(.portal-on) .portal__beam,
+html:not(.portal-on) .portal__rail,
+html:not(.portal-on) .portal__cue,
+html:not(.portal-on) .portal__skip{display:none}
+
+/* --- narrow ---------------------------------------------------------------
+   The scene is shorter on a phone, because a thumb travels a screen in a flick
+   and four acts over two full screens turn into four acts nobody can stop on.
+   The hero column is also pinned to the top of the stage rather than centred in
+   it: the mark is drawn at the top of the frame at this width, so centred text
+   would be laid over the very object that is about to come apart. */
+@media (max-width:1100px){
+  :root{--portal-len:150svh}
+  html.portal-on .portal__stage .hero{align-items:flex-start;
+    padding-top:clamp(178px,40svh,320px);padding-bottom:clamp(56px,9vh,84px)}
+  .pcall{width:214px}
+  .pcall__s{width:174px}
+  .pcall--flip{margin-left:-232px}
+}
+@media (max-width:640px){
+  :root{--portal-len:128svh}
+  html.portal-on .portal__stage .hero{padding-top:clamp(168px,38svh,300px)}
+  .portal__cue{font-size:9px;letter-spacing:.22em}
+  .pcall__t{font-size:15px}
+  .pcall__s{font-size:11px}
+}
+
+/* --- reduced motion -------------------------------------------------------
+   The scene still runs here, because it does not animate: it is a position in a
+   scroll the visitor is holding. What the setting removes is everything that
+   moves without being asked — the falling cue and the light on the seam — and
+   portal.js shortens the track and gentles the camera to match. The three
+   layers and their three names are untouched: that is content, not motion. */
+html.portal-calm{--portal-len:120svh}
+@media (prefers-reduced-motion:reduce){
+  .portal__cue i{animation:none;opacity:.7}
+  .portal__beam{display:none}
+  .pcall{will-change:auto}
+}

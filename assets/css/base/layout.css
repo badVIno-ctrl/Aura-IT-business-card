@@ -1,0 +1,25 @@
+/* Layout primitives
+   Container, section rhythm, the brand gradient, reveal base state. */
+.sec--tint{background:var(--paper-2)}
+/* The header is fixed, so an anchor jump would otherwise park the section
+   heading underneath it. Reserve its height plus breathing room. */
+section[id]{scroll-margin-top:clamp(88px,11vw,104px)}
+.sec-head{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(24px,4vw,64px);align-items:end;margin-bottom:var(--head-y)}
+.sec-head p{color:var(--ink-3);font-size:17px;max-width:46ch}
+
+/* --- the brand gradient -------------------------------------------------
+   The same three hues in the same order, in the two places a gradient can be
+   applied: to type, and to an SVG stroke.
+
+   The stop classes exist because `stop-color` is a CSS property and a gradient
+   declared with attributes in the markup cannot follow the theme. They live
+   here rather than with the first section that needed them — the process wave
+   owned them, and then the contact section had to reach across into another
+   section's stylesheet to light a stroke in the same colour. */
+.grad{background:linear-gradient(96deg,var(--c-blue),var(--c-violet) 60%,var(--c-sky));-webkit-background-clip:text;background-clip:text;color:transparent}
+.gs-sky{stop-color:var(--c-sky)}
+.gs-blue{stop-color:var(--c-blue)}
+.gs-violet{stop-color:var(--c-violet)}
+/* Entrances used to live here as one .rv class that moved everything 22px up
+   the page. They are now a set of per-section characters in base/enter.css,
+   assigned at runtime, so there is nothing generic left to declare. */

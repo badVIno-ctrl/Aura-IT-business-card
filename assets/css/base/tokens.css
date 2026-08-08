@@ -1,0 +1,336 @@
+/* Design tokens
+   ---------------------------------------------------------------------------
+   Two complete palettes live here and nowhere else. Every other stylesheet
+   references these names only — no raw colour may appear downstream, because
+   a raw colour is a colour that cannot follow the theme.
+
+   Dark is the default (:root). Light is an override on [data-theme="light"].
+
+   `color-scheme` is not decoration, and the `only` keyword in front of it is
+   the whole point. Chrome on Android runs an automatic darkening pass over any
+   page it judges to be light. A bare `color-scheme:light` is read as "this
+   page is light" and invites that pass in: the tokens stay light, the surfaces
+   stay light, and the browser paints the canvas behind them black. That is why
+   the dark theme looked correct on a phone while the light theme did not —
+   only the light branch was eligible for the darkening.
+
+   `only light` / `only dark` declares the scheme *and* opts out of the forced
+   pass, so the palette below is the one that reaches the screen. It also
+   themes native UI — scrollbars, form controls, the caret.
+
+   Contrast targets: body text >= 7:1 against its surface, secondary text and
+   large headings >= 4.5:1, interactive borders >= 3:1. */
+
+:root{
+  color-scheme:only dark;
+
+  /* --- brand ---------------------------------------------------------------
+     The same hues in both themes, but a dark surface needs more luminance to
+     read as the *same* colour. These are the lifted variants. */
+  --c-blue:#7B9DFF;
+  --c-sky:#63C6F2;
+  --c-sky-l:#8FD9F7;
+  --c-violet:#A98BF0;
+  --c-mist:#2F3B66;      /* structural, not text: pushable-button edges */
+  --c-deep:#2A47A8;      /* the shadow face under a primary button */
+  --c-blue-h:#6C90FF;    /* primary face while it travels down onto --c-deep:
+                            a hover deepens the fill because the face is moving
+                            *into* its own shadow. Same direction in both
+                            themes, so the gesture reads the same way. */
+
+  /* --- surfaces ------------------------------------------------------------
+     A navy family rather than neutral grey. Grey would read as "dark mode
+     preset"; the blue cast ties the whole thing to the aura in the hero. */
+  --paper:#0A0F1F;       /* page */
+  --paper-2:#0E1428;     /* tinted section band */
+  --surf:#141B33;        /* card, form, raised panel */
+  --surf-2:#1A2340;      /* hover state of the above */
+  --surf-3:#070B18;      /* the face a pushable button sits on */
+  --line:#232C4B;        /* hairline dividers */
+  --edge:#33406E;        /* visible borders on interactive things */
+  --term:#0C1226;        /* code terminal, intentionally deeper than --paper */
+
+  /* --- text ---------------------------------------------------------------- */
+  --ink:#EDF1FF;         /* 15.8:1 on --paper */
+  --ink-2:#BAC5E8;       /*  9.6:1 */
+  --ink-3:#8E9AC4;       /*  6.1:1 — secondary only, never body copy */
+
+  /* --- gloss ----------------------------------------------------------------
+     The hairline of light along the top edge of every lit object — a button, a
+     card, the Telegram block, the form. It was written out as a raw
+     rgba(255,255,255,…) in six stylesheets, which is exactly the kind of colour
+     that cannot follow a theme. Two strengths: the resting edge and the lit one.
+
+     Both themes currently carry the same values, and that is a deliberate stop
+     rather than an oversight: white gloss on a white surface is invisible, so
+     the light theme's edge is a no-op. Making it visible is a design decision
+     about how light objects should read on paper, not part of moving a colour
+     into a token, so it is left for whoever takes that decision — in one place. */
+  --gloss:rgba(255,255,255,.10);
+  --gloss-2:rgba(255,255,255,.16);
+
+  /* --- glass ----------------------------------------------------------------
+     On a dark page glass is a *lightened* film, the inverse of the light
+     theme, otherwise it disappears into the background. */
+  --glass:rgba(28,38,70,.62);
+  --glass-solid:rgba(19,26,50,.86);   /* the same bar once it is stuck */
+  --pill-bg:rgba(120,150,235,.14);    /* the sliding highlight behind nav */
+  --glass-line:rgba(140,168,240,.16);
+  --glass-in:inset 1px 1px 0 rgba(160,185,255,.10),inset -1px -1px 0 rgba(0,0,0,.25);
+
+  /* --- depth ----------------------------------------------------------------
+     Shadow colour as a raw triplet so opacity can vary at the call site. On
+     dark surfaces a shadow is nearly black; a navy shadow would look like fog. */
+  --sh:2,4,12;
+  --sh-strong:.75;
+  --ring:0 0 0 3px rgba(123,157,255,.42);
+
+  /* The hottest point of the light that runs the process wave. It has to read
+     as the source rather than as more of the trail, and "brighter" means two
+     different things in the two themes: against a near-black page it is almost
+     white, against a white one it is the most saturated blue on the site,
+     because white light on a white surface is not light at all. */
+  --proc-head:#EAF2FF;
+
+  /* --- section washes -------------------------------------------------------
+     Deliberately not a purple-to-blue diagonal. These are low-saturation
+     radial pools that read as light falling on a surface. */
+  --hero-bg:radial-gradient(125% 95% at 78% 40%,#16204a 0%,#0d1430 45%,#0a0f1f 78%);
+  --tint-a:linear-gradient(150deg,#141C38,#191634);
+  --tint-q:linear-gradient(112deg,#141D3C,#1A1738 52%,#10233C);
+  /* The contact band's wash runs top to bottom rather than on the diagonal.
+     The seam above it and the seam below it pour --cta-1 and --cta-3 under
+     their curves, and only a vertical wash has one single colour along each of
+     its horizontal edges to be matched — a diagonal one changes across the
+     width, and the join would part company with the band at one end. */
+  --cta-1:#0E1630;
+  --cta-2:#150F2C;
+  --cta-3:#0B1C2E;
+  --cta-bg:linear-gradient(180deg,var(--cta-1),var(--cta-2) 55%,var(--cta-3));
+  --ico-bg:linear-gradient(135deg,#1B2547,#241C46);
+  --vis-bg:linear-gradient(140deg,#141D3E,#1D1740);
+  --card-glow:rgba(123,157,255,.16);
+
+  /* --- case tones ----------------------------------------------------------
+     Every project in the portfolio carries exactly one colour decision: --h,
+     the hue angle of the work itself. Everything else — the wash its preview is
+     mounted on, the chip above its title, the rim it lights up with — is built
+     from that angle plus the four numbers below, so a case is a hue and the
+     theme decides how bright and how saturated that hue is allowed to be.
+
+     They are oklch numbers because nine different hues have to read as equally
+     strong at the same values, which is exactly what hsl will not give you:
+     hsl(60 80% 55%) is a headlight next to hsl(250 80% 55%). --tone-l is set
+     where the accent still clears 4.5:1 against the section it sits on, so it
+     can carry the small type as well as the marks.
+
+     Anything downstream declares the brand blue first and the oklch value
+     second, so a browser without oklch keeps a correct page in one colour
+     rather than an uncoloured one. */
+  --tone-l:.82;  --tone-c:.11;    /* the accent: text, chips, rims        */
+  --tone-wl:.32; --tone-wc:.075;  /* the wash a preview is mounted on     */
+  --tone-w2l:.25;--tone-w2c:.06;  /* its far corner, for a lit gradient   */
+
+  /* --- the entry scene ------------------------------------------------------
+     The plate the mark is drawn on, and the light that lifts it. `veil` is the
+     first frame of a load; it is deeper than --paper because the page has to
+     arrive *out of* something rather than fade up from itself. The other two
+     are raw triplets, because the wave layers vary their own alpha.
+
+     `flash` is the single exposure beat as the wave clears the frame. It is
+     held low deliberately: one short pulse, nowhere near the frequency or
+     amplitude that makes a flash a hazard. */
+  --enter-veil:#04060E;
+  --enter-glow:232,240,255;
+  --enter-air:104,146,244;
+  --enter-flash-a:.10;
+  /* The body of light the page arrives in. A gradient rather than a colour,
+     because the two themes need different *shapes* of light and not merely
+     different values: against a near-black plate the core can be almost white,
+     and against a white page it has to stay blue or the frame blows out. */
+  --enter-wash:radial-gradient(closest-side,
+    rgba(var(--enter-glow),.55) 0%,
+    rgba(var(--enter-air),.34) 18%,
+    rgba(var(--enter-air),.12) 42%,
+    rgba(var(--enter-air),0) 66%);
+
+  /* --- actions --------------------------------------------------------------
+     Buttons are lit objects rather than plastic ones: a gradient face, a rim
+     that catches light along its top edge, and a pool of the brand blue thrown
+     onto the surface underneath. They are declared as whole gradients because
+     two gradients cannot be interpolated — a hover has to fade a second layer
+     in over the first, and that layer needs a name of its own.
+
+     `-h` is the lit state. `--btn-glow` is a raw triplet so the depth shadow
+     can vary its own alpha at the call site. */
+  --btn-face:linear-gradient(180deg,#8CAAFF,#4A6BE0);
+  --btn-face-h:linear-gradient(180deg,#A0BEFF,#5C7DEE);
+  --btn-rim:linear-gradient(140deg,rgba(255,255,255,.62),rgba(150,180,255,.34) 44%,rgba(150,110,220,.6));
+  --btn-glow:86,128,233;
+
+  --btn-quiet:linear-gradient(180deg,#1A2340,#121A31);
+  --btn-quiet-h:linear-gradient(180deg,#212C4F,#161F3B);
+  --btn-quiet-rim:linear-gradient(140deg,rgba(120,170,240,.44),rgba(51,64,110,.9) 46%,rgba(150,110,220,.34));
+
+  /* --- state ----------------------------------------------------------------
+     Error red is lifted on dark for the same reason the brand hues are. */
+  --danger:#FF8FA0;
+  --ok:#6FDCA8;
+
+  /* --- typography ----------------------------------------------------------- */
+  /* The stacks fall back through fonts that actually carry Cyrillic. A bare
+     system-ui fallback is what puts empty boxes on screen when the webfont
+     host is slow, blocked, or unreachable from the client's network - which is
+     exactly the moment the site is being shown to someone. */
+  --f-d:'Onest','Golos Text','Segoe UI','Noto Sans',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  --f-t:'Golos Text','Segoe UI','Noto Sans',system-ui,-apple-system,'Helvetica Neue',Arial,sans-serif;
+  --f-m:'JetBrains Mono','Noto Sans Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,'DejaVu Sans Mono',monospace;
+
+  /* --- motion ---------------------------------------------------------------
+     --e-out    entrances and settles: strong ease-out, no overshoot
+     --e-press  pressed states: leaves instantly, returns softly
+     --e-drawer large panels sliding in from an edge
+     Anything a finger waits on resolves under 300ms. */
+  --e-out:cubic-bezier(.22,1,.36,1);
+  --e-press:cubic-bezier(.2,.8,.3,1);
+  --e-drawer:cubic-bezier(.32,.72,0,1);
+  --t-press:.12s;--t-f:.28s;--t-m:.5s;
+
+  /* --- rhythm ----------------------------------------------------------------
+     One scale, and every vertical gap on the page is a step on it. Five steps,
+     growing by about 1.45× — close enough to a musical interval that two
+     neighbouring gaps read as different sizes, and far enough from linear that
+     the page cannot drift into "everything is 20px apart".
+
+       --sp-1   8px   inside a small object
+       --sp-2  12px   between the rows of a list
+       --sp-3  18px   a paragraph off its heading, a form field off the next
+       --sp-4  26px   a block off the next block
+       --sp-5  38px   a group off the next group
+
+     Above that the two page-level rhythms get names of their own, because they
+     are the two numbers that decide how dense the whole document reads:
+
+       --sec-y  the air above and below a section
+       --head-y a section heading off the content it introduces
+
+     Both were a third larger. At 1440 the gap between two sections was 259px of
+     nothing: the page ran two and a half screens taller than its content, and
+     each section arrived alone with no sense of what it had followed. It is
+     179px now. The breakpoints override these two tokens rather than
+     re-declaring padding on .sec, so a phone is two numbers and not a second
+     rhythm of its own.
+
+     The scale is deliberately not used for horizontal space. Gutters, grid gaps
+     and the padding inside a card are all fluid — clamp() against the viewport —
+     and pinning them to a fixed ladder would be a different change with its own
+     screenshots. */
+  --sp-1:8px;  --sp-2:12px; --sp-3:18px;
+  --sp-4:26px; --sp-5:38px;
+  --sec-y:clamp(52px,6.2vw,92px);
+  --head-y:clamp(22px,2.8vw,38px);
+
+  --gut:clamp(20px,4vw,56px);--maxw:1220px;
+}
+
+/* ===========================================================================
+   LIGHT
+   Not "the dark theme with the lightness flipped": the brand hues go back to
+   their original saturated values, which only work against white.
+   =========================================================================== */
+[data-theme="light"]{
+  color-scheme:only light;
+
+  --c-blue:#4A6FD8;      /* darkened from #5680E9 to clear 4.5:1 on white */
+  --c-sky:#2E93C9;
+  --c-sky-l:#84CEEB;
+  --c-violet:#7A4FC4;
+  --c-mist:#C1C8E4;
+  --c-deep:#3C55B8;
+  --c-blue-h:#3F60C4;    /* 5.7:1 with white — deepening on hover keeps the
+                            label legible where brightening would not */
+
+  --paper:#FFFFFF;
+  --paper-2:#F6F8FE;
+  --surf:#FFFFFF;
+  --surf-2:#F7F9FF;
+  --surf-3:#E9EDFA;
+  --line:#E6EAF7;
+  --edge:#C1C8E4;
+  --term:#131A33;        /* the terminal stays dark in both themes: it is a
+                            depiction of a terminal, not a page surface */
+
+  --ink:#141A30;
+  --ink-2:#3D4666;
+  --ink-3:#5B6690;       /* darkened from #68729A for 4.6:1 on --paper-2 */
+
+  --glass:rgba(255,255,255,.55);
+  --glass-solid:rgba(255,255,255,.78);
+  --pill-bg:rgba(255,255,255,.55);
+  --glass-line:rgba(255,255,255,.6);
+  --glass-in:inset 2px 2px 5px -2px rgba(255,255,255,.95),inset -2px -2px 5px 2px rgba(255,255,255,.7),inset 0 -2px 0 rgba(255,255,255,.45);
+
+  --sh:20,26,48;
+  --sh-strong:.5;
+  --ring:0 0 0 3px rgba(74,111,216,.34);
+
+  --proc-head:#2F6FE0;
+
+  --hero-bg:radial-gradient(120% 90% at 78% 42%,#EFF4FE 0%,#F7F9FF 42%,#fff 78%);
+  --tint-a:linear-gradient(150deg,#F3F6FE,#F6F1FD);
+  --tint-q:linear-gradient(112deg,#EEF3FE,#F3EEFC 52%,#EAF6FD);
+  --cta-1:#F2F5FE;
+  --cta-2:#F6F0FD;
+  --cta-3:#EDF7FD;
+  --cta-bg:linear-gradient(180deg,var(--cta-1),var(--cta-2) 55%,var(--cta-3));
+  --ico-bg:linear-gradient(135deg,#EAF0FE,#F1EAFB);
+  --vis-bg:linear-gradient(140deg,#EEF3FE,#F4EFFC);
+  --card-glow:rgba(74,111,216,.13);
+
+  /* The same hues on a white page: darker so the accent can still carry text,
+     and a wash that is a tint rather than a surface. */
+  --tone-l:.47;  --tone-c:.14;
+  --tone-wl:.955;--tone-wc:.03;
+  --tone-w2l:.91;--tone-w2c:.05;
+
+  /* The light theme's plate is deep, not black: a black frame in front of a
+     white page reads as a fault, and the brand mark is drawn in the same
+     lifted hues in both themes because it always sits on a dark plate. The
+     exposure beat runs to pure white here — it is the moment the scene hands
+     over to a white page, so the flash *is* the transition. */
+  --enter-veil:#111834;
+  --enter-glow:255,255,255;
+  --enter-air:132,170,255;
+  --enter-flash-a:.16;
+  /* White light on a white page is not light, it is a blown frame — measured at
+     .55 in the core the whole hero disappeared for two thirds of a second. Here
+     the wash keeps the brand blue and only the exposure beat goes to white. */
+  --enter-wash:radial-gradient(closest-side,
+    rgba(var(--enter-air),.34) 0%,
+    rgba(var(--enter-air),.21) 22%,
+    rgba(var(--enter-air),.07) 46%,
+    rgba(var(--enter-air),0) 68%);
+
+  /* The same objects lit by a white room instead of a dark one: the face goes
+     deeper so the label keeps its contrast, and the rim is a true highlight
+     rather than a lifted tint. */
+  --btn-face:linear-gradient(180deg,#5C7EE9,#3350BE);
+  --btn-face-h:linear-gradient(180deg,#6C8CF2,#3D5DCC);
+  --btn-rim:linear-gradient(140deg,rgba(255,255,255,.85),rgba(90,130,235,.4) 46%,rgba(122,79,196,.62));
+  --btn-glow:74,111,216;
+
+  --btn-quiet:linear-gradient(180deg,#FFFFFF,#F4F7FF);
+  --btn-quiet-h:linear-gradient(180deg,#FFFFFF,#EDF2FE);
+  --btn-quiet-rim:linear-gradient(140deg,rgba(120,155,225,.62),rgba(193,200,228,.95) 46%,rgba(150,110,220,.4));
+
+  --danger:#C6304A;
+  --ok:#1B8A5A;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;background:var(--paper)}
+
+/* Theme changes are a deliberate, user-triggered event, so they get a short
+   cross-fade rather than snapping. Scoped to the properties that actually
+   change, and suppressed during the first paint by .theme-boot on <html>. */
+html.theme-boot *{transition:none!important}

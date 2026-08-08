@@ -1,0 +1,173 @@
+/* Process — the four stages on the brand's own wave
+   ---------------------------------------------------------------------------
+   What was here before: a two-pixel vertical rail with a gradient bar scaled
+   up it, and a dot per stage. It worked, and it was the same widget every
+   agency site has. The wave in the mark is the one shape this brand owns, so
+   the section is now built on it: one stroke of the logo unrolled across the
+   block, the four stages standing on its four extremes, and a light that runs
+   the curve as the page scrolls and lights each stage as it reaches it.
+
+   Read the comment above .proc in index.html first — the two percentages that
+   place every stage (22.8125% for a crest, 77.1875% for a trough) are derived
+   there, and everything below simply uses them.
+
+   Two things are deliberate about the resting state:
+
+   - The finished wave *is* the resting state. --p defaults to 1 and the
+     numbers default to full ink, so a visitor with no scripting, or with a
+     reduced-motion request, reads a completed diagram rather than a dim one
+     waiting for an event that will never arrive. process.js adds .proc--live
+     before it writes anything; that class is what hands the dimming over to
+     the scroll.
+   - Only two properties ever change while scrolling: a dash offset on the
+     stroke, and opacity/transform on a bloom. No layout, no filters. */
+
+.proc{
+  /* Height of the band the wave lives in. The stroke stretches to it, so this
+     is also what sets the amplitude on screen. */
+  --band:clamp(178px,16vw,258px);
+  /* How far the light has travelled along the curve, 0…1. Written by
+     process.js on this element only — one style write per scroll tick, which
+     the stroke and the head both read. */
+  --p:1;
+  position:relative}
+
+/* --- the wave ------------------------------------------------------------
+   Stretched to the band with preserveAspectRatio="none"; the path carries
+   non-scaling-stroke so the line keeps its weight while the box does not keep
+   its ratio. The horizontal wave is the desktop composition, the vertical one
+   is the phone composition, and only ever one of them is displayed. */
+/* Both dimensions are declared, and that is not belt and braces. An <svg> is a
+   replaced element: give it a viewBox and leave one axis to `auto`, and the
+   intrinsic ratio of the viewBox decides that axis instead of the box it was
+   stretched into. left:0/right:0 with height:--band therefore produced a wave
+   exactly four times the band wide — 922px inside a 1108px block — and every
+   stage stood a little further off its own extreme than the last. Measured, not
+   guessed: the check in the QA pass reads the path's own point and the number's
+   own box, and that is how a 23px drift at 1440 turned up. */
+.proc__wave{position:absolute;left:0;top:0;width:100%;height:var(--band);display:block;overflow:visible}
+.proc__wave--v{display:none}
+
+/* The gradient the light is made of is the brand's own three hues, and its
+   stops are classes rather than attributes in the markup because stop-color is
+   a CSS property — which is what lets the two themes hand it their own values.
+   They are declared once in base/layout.css, next to the gradient's type
+   version: .gs-sky / .gs-blue / .gs-violet. The contact section lights a stroke
+   in the same colour, and it should not have to reach into this file for it. */
+
+/* The bed: the whole curve, always visible, so the shape reads as one object
+   and the light has somewhere to travel. */
+.proc__bed{stroke:var(--edge);stroke-width:2}
+
+/* The lit part. stroke-dasharray:100 with pathLength="100" means one dash the
+   length of the whole curve, and the offset is the percentage still to come. */
+.proc__lit,.proc__halo,.proc__head{stroke-linecap:round}
+.proc__lit{stroke-width:3.4;stroke-dasharray:100;
+  stroke-dashoffset:calc(100 - var(--p) * 100)}
+.proc__wave--h .proc__lit,.proc__wave--h .proc__halo{stroke:url(#pwHg)}
+.proc__wave--v .proc__lit,.proc__wave--v .proc__halo{stroke:url(#pwVg)}
+/* The bloom around the trail. A wide translucent stroke rather than a
+   drop-shadow: a filter would re-blur the band on every frame the offset
+   changes, and this is one more stroke on a layer that is already being
+   painted. */
+.proc__halo{stroke-width:11;opacity:.16;stroke-dasharray:100;
+  stroke-dashoffset:calc(100 - var(--p) * 100)}
+/* The head of the light: a short hot dash whose leading edge is exactly where
+   the light has reached. A dash pattern starts at -offset along the path, so
+   an offset of (8 - p·100) puts this 8-unit dash at [p·100 - 8, p·100]. */
+.proc__head{stroke:var(--proc-head);stroke-width:3.4;
+  stroke-dasharray:8 100;stroke-dashoffset:calc(8 - var(--p) * 100);opacity:0}
+.proc--live .proc__head{opacity:1}
+/* Nothing is travelling on the cheap path either, but three strokes of the
+   same curve on a phone is two more than the reading needs. */
+html.is-low .proc__halo{display:none}
+
+/* --- the stages ----------------------------------------------------------
+   Four equal columns and no gap: that is what puts each column's centre line
+   exactly on its own extreme at every width. The breathing room between them
+   is padding inside the column instead. */
+.proc__steps{position:relative;list-style:none;margin:0;padding:0;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:0}
+
+.pstep{display:grid;grid-template-rows:var(--band) auto;
+  padding:0 clamp(6px,1.1vw,18px);text-align:center;
+  /* A crest by default, a trough on every second stage. */
+  --y:22.8125%;
+  /* The hue the gradient has actually reached at this point on the curve:
+     the stops sit at 0 / .54 / 1, so a stage at 12.5% is still nearly all sky
+     and one at 87.5% is three quarters of the way into the violet. Mixed here
+     rather than eyeballed, so a change to a brand hue carries through. */
+  --tone:color-mix(in oklab,var(--c-sky) 78%,var(--c-blue))}
+.pstep:nth-child(2){--y:77.1875%;--tone:color-mix(in oklab,var(--c-sky) 31%,var(--c-blue))}
+.pstep:nth-child(3){--tone:color-mix(in oklab,var(--c-blue) 81%,var(--c-violet))}
+.pstep:nth-child(4){--y:77.1875%;--tone:color-mix(in oklab,var(--c-blue) 25%,var(--c-violet))}
+
+/* The box the extreme is measured against. It is the first grid row, so it is
+   exactly --band tall — which is exactly the height the wave was stretched to,
+   which is why a percentage in one lands on the curve in the other. */
+.pstep__peak{position:relative}
+
+/* The number sits on the curve. Its background is a disk of the page colour
+   wide enough to clear the stroke, so the wave passes *behind* the digits
+   rather than striking through them — a background on the element itself, so
+   there is no extra box and no z-index negotiation with the stroke. The disk
+   fades out before the edge of that box: a gradient larger than the box it is
+   painted in gets clipped to a rounded square, which is exactly what the first
+   pass of this looked like. */
+.pstep__n{position:absolute;left:50%;top:var(--y);transform:translate(-50%,-50%);
+  display:grid;place-items:center;width:2.1em;height:2.1em;
+  font-family:var(--f-d);font-weight:800;font-size:clamp(34px,4.4vw,62px);
+  line-height:1;letter-spacing:-.035em;color:var(--ink);
+  background:radial-gradient(closest-side,var(--paper) 0 52%,
+    color-mix(in srgb,var(--paper) 55%,transparent) 74%,transparent 88%);
+  transition:color var(--t-m) var(--e-out),opacity var(--t-m) var(--e-out)}
+
+/* The bloom that opens under a stage as the light reaches it. Opacity and
+   transform only, so it is composited and costs nothing to run. */
+.pstep__dot{position:absolute;left:50%;top:var(--y);width:var(--band);height:var(--band);
+  margin:calc(var(--band) / -2) 0 0 calc(var(--band) / -2);border-radius:50%;
+  pointer-events:none;opacity:0;transform:scale(.55);
+  background:radial-gradient(closest-side,
+    color-mix(in srgb,var(--tone) 34%,transparent) 0%,
+    color-mix(in srgb,var(--tone) 12%,transparent) 42%,
+    transparent 70%);
+  transition:opacity var(--t-m) var(--e-out),transform .7s var(--e-out)}
+
+.pstep__t{padding-top:clamp(6px,1vw,14px)}
+.pstep__t h3{color:var(--ink)}
+.pstep__t p{color:var(--ink-3);font-size:14.5px;margin-top:var(--sp-1)}
+
+/* --- what the light does when it arrives --------------------------------
+   Only inside .proc--live: without the class the section is already at its
+   finished state and there is nothing to light up. */
+.proc--live .pstep__n{color:var(--ink-3);opacity:.62}
+.proc--live .pstep.on .pstep__n{color:var(--tone);opacity:1}
+.proc--live .pstep.on .pstep__dot{opacity:1;transform:none}
+.proc--live .pstep__t h3{transition:color var(--t-m) var(--e-out)}
+.proc--live .pstep:not(.on) .pstep__t h3{color:var(--ink-2)}
+
+/* ===========================================================================
+   THE PHONE COMPOSITION
+   The same four humps, drawn down a rail on the left, with the stages stacked
+   beside it. Equal rows are what keep the agreement with the geometry: four
+   rows of 1fr put each stage's centre line on its own extreme, exactly as four
+   equal columns do across the top.
+
+   The number stays on the curve vertically and gives up the horizontal offset
+   of its extreme: in a rail this narrow the zigzag reads as a wobble, and the
+   disk behind the digits still masks the stroke where the two cross.
+   =========================================================================== */
+@media (max-width:940px){
+  .proc{--rail:clamp(52px,13vw,64px)}
+  .proc__wave--h{display:none}
+  .proc__wave--v{display:block;width:var(--rail);height:100%}
+  .proc__steps{grid-template-columns:1fr;grid-template-rows:repeat(4,minmax(94px,1fr))}
+  .pstep{grid-template-columns:var(--rail) 1fr;grid-template-rows:auto;
+    padding:0;text-align:left;align-items:center}
+  .pstep__peak{height:100%}
+  .pstep__n,.pstep__dot{left:50%;top:50%}
+  .pstep__n{font-size:clamp(21px,6vw,27px);width:2.3em;height:2.3em}
+  .pstep__dot{width:calc(var(--rail) * 2.6);height:calc(var(--rail) * 2.6);
+    margin:calc(var(--rail) * -1.3) 0 0 calc(var(--rail) * -1.3)}
+  .pstep__t{padding:14px 0 14px clamp(10px,3vw,18px)}
+}

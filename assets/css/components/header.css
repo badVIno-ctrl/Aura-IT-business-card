@@ -1,0 +1,224 @@
+/* Header — the floating glass pill
+   ---------------------------------------------------------------------------
+   The bar is an object over the page, not an edge of it. A capsule of glass
+   inset from the top of the viewport, holding the mark, the sections, the
+   theme switch and the one action — with the page visibly running underneath
+   it. That separation is the whole point: a full-width bar cuts the window in
+   two with a horizontal line, and this page has decided that horizontal lines
+   are not how it divides anything.
+
+   What the pill is made of:
+
+   1. GLASS, NOT PAINT. One blurred, saturated film with a light rim and a soft
+      drop. The blur lives on a pseudo-element so it can be swapped out wholesale
+      on the cheap rendering path, where an always-mounted backdrop-filter costs
+      a compositor pass on every scroll frame.
+   2. DENSITY IS THE SCROLL SIGNAL. Past the threshold `.stuck` firms the glass
+      up, deepens the drop and takes 8px out of the row. The header is generous
+      over the first screen and compact once it is a tool.
+   3. THE CAPSULE THAT FOLLOWS THE CURSOR. One rounded light travels between the
+      section links under the pointer. It is a single element that moves, not a
+      background per link, so the movement between two labels is continuous —
+      that is what makes the nav feel like a physical control.
+   4. THE ACTIVE ITEM IS THE SECTION YOU ARE IN. A gradient underscore in the
+      brand's three hues, written by header.js from a scroll spy. Hover asks a
+      question and gets the capsule; the underscore states a fact. The two must
+      not look alike.
+   5. THE READ POSITION IS A SLIVER, NOT A RULE. The progress stroke is inset
+      inside the pill with rounded ends, so it reads as an instrument on the
+      object rather than as a line drawn across the page.
+
+   The vertical rhythm is one variable. `--head-h` is the row height and the
+   pill, the logo and the nav all read from it, so the compaction on scroll is a
+   single number changing in a single place. */
+
+.head{
+  --head-h:66px;
+  --head-wash:0;          /* 0 at rest, 1 when stuck — firms the glass up   */
+  --head-prog:0;          /* 0…1 read position, written by header.js        */
+  position:fixed;inset:0 0 auto;z-index:50;
+  padding:clamp(10px,1.2vw,16px) var(--gut) 0;
+  pointer-events:none}    /* the gap beside the pill belongs to the page    */
+
+/* An open navigation panel is a layer over the page, so the page behind it must
+   not scroll under the thumb. header.js sets this on <html> and removes it on
+   every close path — tap outside, Escape, choosing a link, or the layout
+   crossing back to desktop. */
+html.nav-open{overflow:hidden}
+
+.head__in{
+  position:relative;pointer-events:auto;
+  display:grid;grid-template-columns:auto 1fr auto;align-items:center;
+  /* Integer gaps on purpose. A fractional track gap puts the nav — and every
+     glyph in it — on a half pixel, which is exactly what turns crisp type into
+     soft type on a non-retina screen. Every horizontal number in this bar
+     resolves to a whole pixel at every breakpoint it is used at. */
+  gap:24px;
+  height:var(--head-h);max-width:var(--maxw);margin:0 auto;
+  padding:0 20px;
+  /* A capsule, not a rounded rectangle: the radius is half the row height, so
+     the ends are true semicircles and stay true when .stuck takes 8px out. */
+  border-radius:calc(var(--head-h) / 2);
+  border:1px solid var(--glass-line);
+  box-shadow:
+    var(--glass-in),
+    0 10px 26px -20px rgba(var(--sh),.75),
+    0 calc(18px + var(--head-wash) * 10px) calc(38px + var(--head-wash) * 14px)
+      calc(-26px + var(--head-wash) * 2px) rgba(var(--sh),.85);
+  transition:height var(--t-m) var(--e-out),box-shadow var(--t-m) var(--e-out)}
+
+/* The glass itself. A separate layer because the film has to firm up
+   independently of the type sitting on it. */
+.head__in::before{
+  content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;
+  /* The film is mixed from the page's own paper rather than from a fixed
+     rgba, so it is the right colour in both themes — and it is opaque enough
+     to hold the type on its own. A glass panel that depends on the blur to be
+     legible is illegible everywhere the blur is unavailable: the low-power
+     rendering path, a browser that never shipped backdrop-filter, and a
+     screenshot taken for a deck. The blur is the finish, not the substance. */
+  background:var(--glass);
+  background:color-mix(in srgb,var(--paper) 78%,transparent);
+  backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
+  transition:background var(--t-m) var(--e-out)}
+.head.stuck .head__in::before{background:var(--glass-solid);
+  background:color-mix(in srgb,var(--paper) 94%,transparent)}
+.head.stuck{--head-wash:1;--head-h:58px}
+
+/* The cheap path keeps the pill and loses only the live blur — a flat film of
+   the same colour reads as the same object and costs nothing per frame. */
+html.is-lite .head__in::before{
+  backdrop-filter:none;-webkit-backdrop-filter:none;
+  background:var(--glass-solid);
+  background:color-mix(in srgb,var(--paper) 95%,transparent)}
+
+/* --- the read position ---------------------------------------------------
+   Inset inside the pill, rounded at both ends, and only present once there is
+   something to report. */
+/* The read-position line that used to live along the bottom of the bar was
+   removed with the element itself. Progress is the thread in the right margin
+   and only the thread; header.js still publishes --head-prog, which is now
+   simply an available number rather than something drawn here. */
+
+/* ===========================================================================
+   LOGO
+   The mark itself is untouched — it is the client's, and it is good. What it
+   gains is a reaction: a pool of its own light behind it, a wave that runs once
+   under the wordmark, and half a degree of lift. Nothing loops. A mark that
+   animates on its own while someone is reading the page beside it is an
+   advertisement for itself.
+   =========================================================================== */
+.logo{position:relative;display:flex;align-items:center;gap:11px;
+  font-family:var(--f-d);font-weight:700;letter-spacing:-.02em;color:var(--ink);
+  /* Whole pixels, and a line box the same height as the row it is centred in:
+     a 17.16px wordmark on a fractional baseline is the blurriest thing in the
+     bar, and it was dragging the whole row out of alignment with the nav. */
+  font-size:18px;line-height:1;
+  transition:color var(--t-f) var(--e-out)}
+
+.logo__mark{position:relative;display:block;flex:none;
+  width:30px;height:30px;
+  transition:width var(--t-m) var(--e-out),height var(--t-m) var(--e-out)}
+.head.stuck .logo__mark{width:28px;height:28px}
+/* The pool of light. Sized past the mark so it reads as light *from* it rather
+   than as a plate behind it. */
+.logo__mark::before{
+  content:"";position:absolute;inset:-42%;border-radius:50%;pointer-events:none;
+  background:radial-gradient(closest-side,var(--card-glow),transparent 72%);
+  opacity:0;transform:scale(.7);
+  transition:opacity var(--t-m) var(--e-out),transform var(--t-m) var(--e-out)}
+.logo__mark svg{position:relative;width:100%;height:100%;display:block;
+  transition:filter var(--t-m) var(--e-out),transform var(--t-m) var(--e-out)}
+
+.logo:hover .logo__mark::before,
+.logo:focus-visible .logo__mark::before{opacity:1;transform:scale(1)}
+.logo:hover .logo__mark svg,
+.logo:focus-visible .logo__mark svg{
+  filter:drop-shadow(0 0 7px color-mix(in srgb,var(--c-blue) 46%,transparent));
+  transform:rotate(-6deg)}
+
+/* The wordmark and, under it, one stroke of the hero's wave — the same cubic as
+   an arc of the mark. It is drawn as a dash the length of its own path and
+   parked off the end, so at rest there is nothing there at all; on hover the
+   offset runs to zero once and stops. */
+.logo__ink{position:relative;display:block;white-space:nowrap}
+.logo__trace{position:absolute;left:0;right:0;bottom:-6px;height:7px;
+  display:block;overflow:visible;opacity:0;
+  transition:opacity var(--t-f) var(--e-out)}
+.logo__trace path{
+  fill:none;stroke:url(#lgTrace);stroke-width:2;stroke-linecap:round;
+  stroke-dasharray:100;stroke-dashoffset:100}
+.logo:hover .logo__trace,.logo:focus-visible .logo__trace{opacity:1}
+.logo:hover .logo__trace path,.logo:focus-visible .logo__trace path{
+  animation:logoTrace .72s var(--e-out) forwards}
+@keyframes logoTrace{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}
+
+/* ===========================================================================
+   NAV
+   =========================================================================== */
+/* The row sits in the middle of its own track rather than hard against the
+   action cluster. Pinned right, the five labels crowded the switch and the
+   button and left a hole under the wordmark; centred in the free space they
+   read as the middle of the bar, which is where the eye looks for them. */
+.nav{position:relative;display:flex;align-items:center;
+  gap:10px;justify-self:center}
+
+/* Whole-pixel type on a whole-pixel grid. 14.5px was rounding to a different
+   glyph raster on every label; 14px with a unit line box puts all five on one
+   baseline and gives the antialiaser nothing to guess at. */
+.nav a{position:relative;z-index:1;display:flex;align-items:center;
+  height:36px;padding:0 12px;
+  font-family:var(--f-t);font-size:14px;font-weight:500;letter-spacing:0;
+  line-height:1;color:var(--ink-2);
+  transition:color var(--t-f) var(--e-out)}
+.nav a:hover{color:var(--ink)}
+
+/* The capsule. One element for the whole row: header.js parks it under the
+   label the pointer is on and it travels the distance between two labels
+   instead of appearing and disappearing on each. Sized and moved with width and
+   a translate only — no layout is touched while it runs. */
+.nav__pill{position:absolute;z-index:0;left:0;top:50%;width:0;height:36px;
+  margin-top:-18px;border-radius:13px;pointer-events:none;opacity:0;
+  background:linear-gradient(180deg,
+    color-mix(in srgb,var(--c-sky) 16%,transparent),
+    color-mix(in srgb,var(--c-violet) 14%,transparent));
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c-blue) 20%,transparent);
+  transition:transform .4s var(--e-out),width .4s var(--e-out),
+    opacity .28s var(--e-out)}
+.nav--pill .nav__pill{opacity:1}
+
+/* The underscore. One element, two states, no travel between items: each label
+   owns its own mark and grows it from the left. The glow is what keeps it in
+   the same language as the buttons and the waves — a lit line, not a border. */
+.nav a::after{
+  content:"";position:absolute;left:12px;right:12px;bottom:2px;height:2px;
+  border-radius:2px;pointer-events:none;
+  background:linear-gradient(90deg,var(--c-sky),var(--c-blue) 56%,var(--c-violet));
+  transform:scaleX(0);transform-origin:0 50%;opacity:0;
+  transition:transform var(--t-f) var(--e-out),opacity var(--t-f) var(--e-out)}
+.nav a[aria-current="true"]{color:var(--ink)}
+.nav a[aria-current="true"]::after{
+  transform:scaleX(1);opacity:1;
+  box-shadow:0 2px 10px -2px color-mix(in srgb,var(--c-blue) 60%,transparent)}
+
+/* The action cluster. Held off the nav by air alone: inside a capsule this
+   small, a divider is one line too many. */
+.head__act{display:flex;align-items:center;gap:14px;flex:none;
+  padding-left:0}
+
+/* The nav panel's own action is desktop-invisible; responsive.css turns it on.
+   Two class names, not one: buttons.css is imported after this file, so a bare
+   `.nav__cta` loses to `.btn{display:inline-flex}` on source order alone and the
+   panel's action leaks into the desktop bar. */
+.nav .nav__cta{display:none}
+
+@media (max-width:900px){
+  /* The panel is not a row, so there is nothing for the capsule to travel. */
+  .nav__pill{display:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .logo:hover .logo__trace path,.logo:focus-visible .logo__trace path{animation:none}
+  .logo__trace{display:none}
+  .nav__pill{transition:opacity .01s}
+}

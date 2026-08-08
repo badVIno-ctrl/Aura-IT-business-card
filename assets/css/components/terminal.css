@@ -1,0 +1,135 @@
+/* The code panel
+   ---------------------------------------------------------------------------
+   Dark in both themes on purpose: it is a depiction of an editor, not a surface
+   of the page. Only the shadow it casts follows the theme, because a shadow
+   belongs to the surface it falls on rather than to the object casting it.
+
+   The panel is a fixed-height window onto a file that is longer than it, and
+   terminal.js slides the pair of columns inside it to keep the caret in view.
+   That is one composited transform on one element, which is why the gutter and
+   the code share a wrapper instead of scrolling independently. */
+
+/* --- the bar ------------------------------------------------------------- */
+.term__tabs{display:flex;gap:2px;margin-right:8px;overflow-x:auto;
+  scrollbar-width:none;flex:1 1 auto;min-width:0}
+.term__tabs::-webkit-scrollbar{display:none}
+.tab{flex:none;font-family:var(--f-m);font-size:11.5px;padding:6px 11px;border-radius:8px;
+  color:rgba(193,200,228,.55);background:transparent;border:0;cursor:pointer;white-space:nowrap;
+  transition:color var(--t-f),background var(--t-f)}
+.tab:hover{color:#fff}
+.tab.on{color:#fff;background:rgba(255,255,255,.1)}
+
+/* The copy control and the confirmation that belongs to it. The note hangs
+   below the bar rather than sitting inside it: in the bar it would either push
+   the tab strip sideways every time it appeared, or be clipped by the button's
+   own overflow. */
+.term__act{position:relative;flex:none;display:flex;align-items:center}
+/* `manipulation` removes the 300ms double-tap wait that mobile Safari still
+   applies to a control this small, and with it the chance that a quick tap is
+   swallowed as the first half of a zoom gesture. */
+.copy{touch-action:manipulation}
+/* --- copying by hand ------------------------------------------------------
+   Shown only when the browser refuses the clipboard outright - see the note in
+   terminal.js. It is not an error state: it is the snippet, in a real field,
+   already selected, so the long-press menu has something to open on.
+
+   Inside .term, so it lands on the panel's own dark surface in either theme,
+   and sized against the same --rows the window is, so it never changes the
+   height of the section it appears in. */
+.term__sheet{position:absolute;inset:0;z-index:9;display:flex;flex-direction:column;
+  gap:10px;padding:16px;border-radius:inherit;
+  background:rgba(8,13,30,.96);
+  opacity:0;transform:scale(.985);
+  transition:opacity var(--t-f) var(--e-out),transform var(--t-f) var(--e-out)}
+.term__sheet.on{opacity:1;transform:none}
+.term__sheet-hint{font-family:var(--f-t);font-size:12.5px;line-height:1.45;
+  color:#B7C4E8;margin:0;padding-right:34px;max-width:52ch}
+.term__sheet-src{flex:1 1 auto;min-height:0;width:100%;
+  font-family:var(--f-m);font-size:12px;line-height:1.6;
+  color:#D9E2FF;background:rgba(0,0,0,.34);
+  border:1px solid rgba(255,255,255,.13);border-radius:12px;
+  padding:12px;resize:none;outline:none;white-space:pre;overflow:auto;
+  -webkit-user-select:text;user-select:text;-webkit-overflow-scrolling:touch}
+.term__sheet-src:focus-visible{border-color:rgba(255,255,255,.34);
+  box-shadow:0 0 0 3px rgba(255,255,255,.14)}
+.term__sheet-x{position:absolute;top:10px;right:10px;width:34px;height:34px;
+  display:grid;place-items:center;padding:0;border:0;border-radius:10px;
+  cursor:pointer;touch-action:manipulation;color:#C9D5F5;
+  background:rgba(255,255,255,.08);-webkit-tap-highlight-color:transparent;
+  transition:background var(--t-f) var(--e-out),color var(--t-f) var(--e-out),
+             transform var(--t-press) var(--e-press)}
+.term__sheet-x svg{width:16px;height:16px;fill:none;stroke:currentColor;
+  stroke-width:1.9;stroke-linecap:round}
+.term__sheet-x:hover{background:rgba(255,255,255,.15);color:#fff}
+.term__sheet-x:active{transform:scale(.94)}
+.term__sheet-x:focus-visible{outline:none;box-shadow:0 0 0 3px rgba(255,255,255,.45)}
+
+.copy__pair,.copy__ok{transition:opacity var(--t-f) var(--e-out),transform var(--t-f) var(--e-out)}
+.copy__pair{transform-origin:50% 50%}
+.copy__ok{opacity:0;transform:scale(.7);transform-origin:50% 50%;
+  stroke-dasharray:28;stroke-dashoffset:28;transition:opacity var(--t-press) var(--e-out),
+  transform var(--t-f) var(--e-out),stroke-dashoffset var(--t-m) var(--e-out) .06s}
+.copy.done .copy__pair{opacity:0;transform:scale(.7)}
+.copy.done .copy__ok{opacity:1;transform:none;stroke-dashoffset:0}
+.copy.done{color:#8BE9C0}
+
+.copy__note{position:absolute;top:calc(100% + 9px);right:0;z-index:8;
+  padding:5px 10px;border-radius:8px;white-space:nowrap;pointer-events:none;
+  font-family:var(--f-t);font-size:11.5px;letter-spacing:.01em;color:#EAF2FF;
+  background:rgba(12,18,38,.94);box-shadow:0 0 0 1px rgba(255,255,255,.14),
+    0 10px 24px -12px rgba(0,0,0,.9);
+  opacity:0;transform:translateY(-5px) scale(.97);
+  transition:opacity var(--t-f) var(--e-out),transform var(--t-f) var(--e-out)}
+.copy__note.on{opacity:1;transform:none}
+
+/* --- the window ---------------------------------------------------------
+   Height in lines rather than pixels, so the type scale and the window stay in
+   agreement at every breakpoint: 16 lines of 1.62 plus the padding. */
+/* The window is measured in lines, not pixels: --rows and --fz are the only two
+   numbers a breakpoint has to override, and the height follows from them. The
+   snippets are written to 65 columns, and at this type size that is what fits.
+
+   Horizontal overflow is a scroll and not a clip: an editor that hides the end
+   of a line with no way to reach it is a screenshot, not an editor. The
+   scrollbar is thin, appears only when a file needs it, and the height allows
+   for it so the last line never ends up half underneath. */
+.term__body{--rows:16;--fz:12.5px;--lh:1.62;
+  position:relative;overflow-x:auto;overflow-y:hidden;
+  overscroll-behavior-x:contain;scrollbar-width:thin;
+  font-family:var(--f-m);font-size:var(--fz);line-height:var(--lh);
+  height:calc(var(--rows) * var(--fz) * var(--lh) + 44px)}
+.term__body::-webkit-scrollbar{height:7px}
+.term__body::-webkit-scrollbar-thumb{background:rgba(160,185,255,.22);border-radius:6px}
+.term__body::-webkit-scrollbar-thumb:hover{background:rgba(160,185,255,.34)}
+.term__body::-webkit-scrollbar-track{background:transparent}
+.term__scroll{display:flex;align-items:flex-start;min-height:100%;
+  transform:translate3d(0,calc(var(--sy,0) * -1px),0);
+  transition:transform var(--t-m) var(--e-out)}
+.term__gutter{position:sticky;left:0;z-index:2;flex:none;width:46px;
+  padding:18px 0 18px 18px;text-align:right;white-space:pre;user-select:none;
+  color:rgba(170,190,240,.32);background:var(--term)}
+/* Two spaces to a tab: Go is written with real tabs, and at eight columns a
+   nested loop in this panel is mostly indentation. */
+.term__code{flex:1 1 auto;min-width:0;padding:18px 16px;tab-size:2;
+  color:#D9E2FF;white-space:pre}
+
+/* The caret is the only thing on this panel that repeats forever, and it is a
+   step animation on one 8px box. */
+.caret{display:inline-block;width:8px;height:1em;vertical-align:-.18em;
+  background:var(--c-sky);box-shadow:0 0 10px rgba(90,185,234,.7);
+  animation:termCaret 1.05s steps(1) infinite}
+@keyframes termCaret{50%{opacity:0}}
+
+/* --- tokens -------------------------------------------------------------
+   Punctuation is quieter than the code around it and operators are not: a wall
+   of dense mathematics is far easier to read when the brackets recede and the
+   arithmetic does not. */
+.tk-key{color:#C792EA}
+.tk-fn{color:#82AAFF}
+.tk-ty{color:#FFCB6B}
+.tk-str{color:#C3E88D}
+.tk-num{color:#F78C6C}
+.tk-com{color:#63709B;font-style:italic}
+.tk-op{color:#89DDFF}
+.tk-pun{color:#8494C4}
+.tk-var{color:#D9E2FF}

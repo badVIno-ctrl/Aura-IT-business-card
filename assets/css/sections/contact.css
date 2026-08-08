@@ -1,0 +1,195 @@
+/* Contact — the form as an object that answers
+   ---------------------------------------------------------------------------
+   What was here before: a heading, three paragraphs of reassurance, a Telegram
+   card and a plain form, with the two columns hung from the top of the section
+   and about two hundred pixels of nothing under the shorter one. The copy was
+   doing the work that a design should: every empty patch had a sentence put in
+   it.
+
+   The section now carries one idea instead. There is a single number, --fill,
+   which is how much of the enquiry actually exists — and two things are drawn
+   from it: a seam of light along the top edge of the form, and one of the
+   brand's own waves standing at the foot of the left column. They are lit by
+   the same value at the same instant, so they read as one light rather than as
+   two widgets: what you type in the form lights the wave beside it.
+
+   Why this and not an illustration. The gap that opened when the copy came out
+   is the gap the light fills, and it fills it with feedback — "we can see you
+   writing" — rather than with decoration. It is also the light the page has
+   been using since the first frame: the mark draws itself in it during the
+   entry scene, and it runs the curve in the process section. Nothing new is
+   introduced here; something already established is put to work.
+
+   THE MECHANIC is the one the process wave already proved, and it is worth
+   knowing before editing either. Every stroke carries pathLength="100", so a
+   dash array of 100 is one dash the length of the whole path and the offset is
+   the percentage still to come: `calc(100 - var(--fill) * 100)`. A stage of the
+   light therefore costs one custom property write and no layout, and the head —
+   a short hot dash at `calc(8 - var(--fill) * 100)` — lands exactly where the
+   trail ends.
+
+   THE RESTING STATE is dark, and this is the one place it differs from the
+   process wave. There, a finished curve is the honest resting state: the four
+   stages exist whether or not anyone scrolled. Here the light means "your
+   enquiry is complete", so showing it lit with an empty form would be a lie.
+   With no scripting, --fill stays 0 and both figures are their bed strokes: a
+   quiet line closing the column and a hairline along the edge of the card. */
+
+.cta{background:var(--cta-bg);
+  /* How much of the enquiry exists, 0…1. Written by form.js on this element,
+     read by the wave in one column and the seam in the other. */
+  --fill:0}
+/* The row keeps its items at their natural height — a stretched form card would
+   grow a band of empty surface under its own button — and the left column alone
+   is stretched to the height of the row. That is what gives the wave somewhere
+   to be: the foot of the column, level with the foot of the form. */
+.cta__in{display:grid;grid-template-columns:1fr 1fr;gap:clamp(28px,4vw,64px);align-items:start}
+.cta__col{display:flex;flex-direction:column;align-self:stretch}
+.cta p.lead{color:var(--ink-2);margin:var(--sp-3) 0 var(--sp-4);max-width:40ch}
+
+/* The Telegram card is the same lit object as the project cards and the
+   actions, so the page teaches the gesture once and reuses it. */
+.tg{position:relative;isolation:isolate;display:flex;align-items:center;gap:14px;
+  border:1.5px solid transparent;border-radius:18px;padding:15px 20px;max-width:400px;
+  background:var(--btn-quiet) padding-box,var(--btn-quiet-rim) border-box;
+  box-shadow:inset 0 1px 0 var(--gloss),0 12px 28px -24px rgba(var(--sh),.9);
+  transition:transform var(--t-f) var(--e-out),box-shadow var(--t-f) var(--e-out)}
+.tg::before{content:"";position:absolute;z-index:-1;inset:0;border-radius:inherit;
+  opacity:0;background:var(--btn-quiet-h);transition:opacity var(--t-f) var(--e-out)}
+.tg:hover::before,.tg:focus-visible::before{opacity:1}
+.tg:hover{transform:translateY(-3px);
+  box-shadow:inset 0 1px 0 var(--gloss-2),
+    0 0 0 1.5px color-mix(in srgb,var(--c-blue) 32%,transparent),
+    0 24px 42px -28px rgba(var(--sh),.9)}
+.tg:active{transform:translateY(0) scale(.994);transition-duration:var(--t-press)}
+.tg:focus-visible{outline:0;box-shadow:var(--ring)}
+/* The mark is Telegram's own, and it arrives with a face already on it: a
+   circle in two blues with a shaded plane inside. It used to be a white
+   silhouette in a squircle tile painted with this page's gradient, which is
+   how every third-party logo on every AI-built page ends up looking - the host
+   site's palette wearing someone else's shape.
+
+   So the tile is gone and the slot is exactly the mark: a 46px circle, with a
+   pool of its own blue thrown on the card beneath it. That is the same
+   treatment the actions get - light under the object rather than a border
+   around it - so the card stays part of the page while the logo stays itself.
+
+   No rotation on hover. A brand mark tipped six degrees is a brand mark used
+   wrongly, and the plane inside this one has a direction of its own. It lifts
+   and its light grows instead, which is the gesture the whole card is already
+   making. */
+.tg__ic{width:46px;height:46px;flex:none;display:block;border-radius:50%;
+  box-shadow:0 9px 20px -10px rgba(34,158,217,.95),0 2px 6px -4px rgba(3,7,20,.7);
+  transition:transform var(--t-f) var(--e-out),box-shadow var(--t-f) var(--e-out)}
+.tg__ic svg{display:block;width:100%;height:100%}
+.tg:hover .tg__ic{transform:translateY(-1px) scale(1.045);
+  box-shadow:0 16px 30px -10px rgba(34,158,217,1),0 3px 8px -4px rgba(3,7,20,.7)}
+.tg b{font-family:var(--f-d);display:block;font-size:15.5px;color:var(--ink)}
+.tg span{font-size:13px;color:var(--ink-3)}
+.contacts{margin-top:var(--sp-3);font-size:14px;color:var(--ink-3)}
+.contacts a{color:var(--ink-2);transition:color var(--t-f)}
+.contacts a:hover{color:var(--c-blue)}
+
+/* --- the wave at the foot of the column ---------------------------------
+   margin-top:auto is the whole layout decision: whatever the column holds, the
+   wave is at its bottom edge and level with the foot of the form. Below 1080px
+   the two columns become one and the wave lands between the contacts and the
+   form, which is the same reading turned ninety degrees — the light arrives and
+   the card it belongs to is directly beneath it. */
+/* `clip` rather than `hidden`, with a margin: the wave is choreographed in with
+   the wipe character from base/enter.css, which oversizes the drawing by 7% and
+   settles it back, and a wave that is briefly wider than its column is layout
+   overflow the viewport would grow a horizontal scrollbar for. Ten pixels of
+   clip margin keeps the resting figure whole — the bloom is a wide stroke and
+   its outer half sits past the ends of the path — while nothing that overflows
+   can reach the document. Measured: at 1024, where the column is the full width
+   of the page, the entry scene pushed the document 25px wider without this. */
+.cta__sig{margin-top:auto;padding-top:clamp(30px,4vw,54px);
+  overflow:clip;overflow-clip-margin:10px}
+.cta__wave{display:block;width:100%;height:clamp(76px,7.6vw,112px);overflow:visible}
+
+/* Both figures are drawn from the same four strokes: the bed the light travels
+   on, a wide translucent bloom, the lit trail, and its head. A bloom rather
+   than a drop-shadow on purpose — a filter would re-blur the box on every frame
+   the offset moves, and this is one more stroke on a layer already being
+   painted. */
+.sig__bed,.seam__bed{stroke:var(--edge);stroke-width:2;fill:none}
+.sig__lit,.sig__halo,.sig__head,
+.seam__lit,.seam__halo,.seam__head{fill:none;
+  stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--fill) * 100);
+  transition:stroke-dashoffset var(--t-m) var(--e-out)}
+.sig__lit,.sig__halo,.sig__head{stroke-linecap:round}
+.sig__lit{stroke:url(#cwG);stroke-width:3}
+.sig__halo{stroke:url(#cwG);stroke-width:11;opacity:.16}
+.sig__head{stroke:var(--proc-head);stroke-width:3;
+  stroke-dasharray:7 100;stroke-dashoffset:calc(7 - var(--fill) * 100);
+  opacity:0;transition:stroke-dashoffset var(--t-m) var(--e-out),opacity var(--t-f)}
+/* The head is a light source, so it only exists while there is light: at zero
+   it would be a bright bead parked on the left edge of an untouched wave. */
+.cta__sig .sig__head{opacity:calc(min(var(--fill) * 8,1))}
+/* One stroke of the curve is enough on the cheap path; the bloom is the widest
+   of the four and buys the least. */
+html.is-low .sig__halo,html.is-low .seam__halo{display:none}
+
+/* --- the form -----------------------------------------------------------
+   Five states, and each one is legible without the others for comparison:
+   empty, focused, satisfied, rejected, sending. */
+.form{position:relative;background:var(--surf);border:1px solid var(--line);
+  border-radius:22px;padding:clamp(22px,2.4vw,30px);
+  box-shadow:0 40px 80px -60px rgba(var(--sh),.6)}
+
+/* --- the seam along the top edge of the form ---------------------------
+   Inset by the corner radius so it reads as a seam along the straight part of
+   the edge rather than as a line that fails to follow the curve. It sits on the
+   border, not inside the card: the card's own hairline is what it lights up. */
+/* Both dimensions are declared, and that is not belt and braces: an <svg> is a
+   replaced element, so `left` and `right` with an automatic width hand the width
+   to the intrinsic ratio of the viewBox instead of to the box it was given. At
+   4px tall and a 100×4 viewBox that is a seam exactly 100px long, parked at the
+   left corner of the card — which is precisely what the first pass of this
+   looked like. The same trap is documented on .proc__wave. */
+.form__seam{position:absolute;left:22px;top:-2px;width:calc(100% - 44px);height:4px;
+  overflow:visible;pointer-events:none}
+/* Butt ends: a seam runs into the corner of the card rather than stopping
+   short of it, and a round cap on a path stretched five times in x is an
+   ellipse pretending to be a circle. */
+.seam__lit,.seam__halo,.seam__head{stroke-linecap:butt}
+.seam__lit{stroke:url(#fsG);stroke-width:2.4}
+.seam__halo{stroke:url(#fsG);stroke-width:9;opacity:.18}
+.seam__head{stroke:var(--proc-head);stroke-width:2.4;
+  stroke-dasharray:6 100;stroke-dashoffset:calc(6 - var(--fill) * 100);
+  opacity:calc(min(var(--fill) * 8,1));
+  transition:stroke-dashoffset var(--t-m) var(--e-out),opacity var(--t-f)}
+/* The enquiry has been accepted: both figures hold at full length and turn to
+   the success colour for as long as the message is on screen. It is the same
+   light arriving somewhere, which is why nothing new is drawn to say so — and
+   the state lives on the section rather than on the form, because the wave in
+   the other column has to agree with it. The head goes out: there is nothing
+   left for the light to travel towards. */
+.cta.is-ok .seam__lit,.cta.is-ok .seam__halo,
+.cta.is-ok .sig__lit,.cta.is-ok .sig__halo{stroke:var(--ok)}
+.cta.is-ok .seam__head,.cta.is-ok .sig__head{opacity:0}
+
+.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.f{position:relative;margin-bottom:var(--sp-3)}
+.f input,.f textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:transparent;border:0;border-bottom:1px solid var(--line);padding:12px 2px;outline:none;transition:border-color var(--t-f)}
+.f textarea{resize:vertical;min-height:96px}
+.f label{position:absolute;left:2px;top:12px;color:var(--ink-3);font-size:15px;pointer-events:none;transition:transform var(--t-f) var(--e-out),font-size var(--t-f) var(--e-out),color var(--t-f)}
+.f input:focus~label,.f textarea:focus~label,.f.has label{transform:translateY(-20px);font-size:11.5px;letter-spacing:.06em;color:var(--c-blue)}
+.f input:focus,.f textarea:focus{border-color:var(--c-blue)}
+/* A field that has what it was asked for keeps a dim version of the lit
+   underline after the caret leaves it. Same light again, at a third of its
+   strength — the field says "got it" without a tick, a colour or a word. */
+.f.ok::after{transform:scaleX(1);opacity:.42}
+.f.ok:focus-within::after{opacity:1}
+.form__bot{display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-top:var(--sp-1)}
+.form__bot small{color:var(--ink-3);font-size:12.5px;max-width:30ch;line-height:1.4}
+/* While the request is in flight the fields recede rather than turning grey.
+   The fact that they cannot be edited is not this rule's job and never was:
+   `pointer-events:none` stops a mouse and lets a keyboard straight through, so
+   form.js disables the fields themselves and this only says what that looks
+   like. */
+.form[aria-busy="true"] .f{opacity:.62}
+.status{font-size:13.5px;margin-top:var(--sp-2);min-height:18px;color:var(--c-blue)}
+.status.err{color:var(--danger)}
+.status.ok{color:var(--ok)}

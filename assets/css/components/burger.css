@@ -1,0 +1,74 @@
+/* Burger toggle
+   ---------------------------------------------------------------------------
+   The button shell is the same lit object as every other action on the page and
+   lives in buttons.css with its siblings; only the three bars belong here.
+
+   THREE EQUAL BARS. The stack used to be 20/14/20 - a short middle rule between
+   two long ones, meant to rhyme with the long stroke between two shorter ones in
+   the logo. On a desktop, at rest, beside a full nav row, that reads as a mark.
+   On a phone it is the only navigation control on the screen and it is read as
+   an icon, not as a mark: the eye compares the three rules to each other and
+   finds one of them wrong. Measured on the phone screenshots, the short middle
+   bar is the single thing that made the cluster look unaligned even before the
+   grid drift beside it was fixed. Equal bars, equal gaps.
+
+   EVERY NUMBER RESOLVES TO A WHOLE PIXEL. The bars are placed off the button's
+   own centre - `left:50% / top:50%` with half the bar pulled back - and spaced
+   with a transform, so whatever the button becomes, the stack stays centred on
+   it. In a 44px button the centre is 22, a 2px bar spans 21-23, and the outer
+   two land on 15-17 and 27-29. Nothing is on a half pixel, which is what keeps
+   a 2px rule from rendering as a 3px grey smear on a 1x screen.
+
+   The width and the gap are two variables read by all three bars, so the mark
+   is retuned in one place and can never drift out of even again.
+
+   TIMING. The closing gesture is one movement in two parts: the middle bar
+   leaves first along its own axis, and the outer two cross a beat later, into
+   the space it left. Opening runs the same two beats in reverse. Nothing here
+   eases in - a control the user is holding has to answer on the press and
+   settle afterwards, never the other way round. */
+
+.burger{--bar-w:18px;--bar-gap:6px}
+
+.burger i{
+  position:absolute;left:50%;top:50%;
+  width:var(--bar-w);height:2px;
+  margin:-1px 0 0 calc(var(--bar-w) / -2);
+  background:var(--ink);border-radius:2px;
+  /* Only transform and opacity travel. Width is in the list for the open
+     state, where the bars grow into an X - it is a one-shot change on a
+     44px object, not a per-frame cost. */
+  transition:transform var(--t-f) var(--e-drawer),
+             width var(--t-f) var(--e-out),
+             background var(--t-f) var(--e-out),
+             opacity var(--t-press) var(--e-out)}
+
+.burger i:nth-child(1){transform:translateY(calc(var(--bar-gap) * -1))}
+.burger i:nth-child(2){transform:translateY(0)}
+.burger i:nth-child(3){transform:translateY(var(--bar-gap))}
+
+/* Hover belongs to a pointer, and the bars are already even, so there is
+   nothing left for a hover to align. It lights the stack instead - the same
+   answer the rest of the page gives, in the same hue. */
+.burger:hover i{background:color-mix(in srgb,var(--c-sky-l) 55%,var(--ink))}
+
+/* Open. The X is built from the two outer bars meeting on the centre the
+   middle one just vacated. They lengthen as they rotate, because an X whose
+   arms are shorter than the rules that formed it reads as having shrunk, and
+   the diagonal of a square is longer than its side - so the arms are given
+   that extra length rather than keeping the resting width.
+
+   The 60ms delay is the whole gesture: the middle bar has to be gone before
+   the other two arrive, or all three are briefly in the same place and the
+   mark turns to mush on the frame the eye is actually watching. */
+.burger.on{--bar-w:20px}
+.burger.on i:nth-child(1){transform:translateY(0) rotate(45deg);transition-delay:.06s}
+.burger.on i:nth-child(2){opacity:0;transform:translateY(0) scaleX(.15)}
+.burger.on i:nth-child(3){transform:translateY(0) rotate(-45deg);transition-delay:.06s}
+/* The bar under the cursor is the one being closed, so it lights rather than
+   changes shape - an X must not move on hover. */
+.burger.on:hover i{background:var(--c-blue)}
+
+@media (prefers-reduced-motion:reduce){
+  .burger i{transition-delay:0s!important}
+}

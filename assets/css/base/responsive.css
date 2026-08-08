@@ -1,0 +1,397 @@
+/* Responsive rules
+   Desktop step-downs first, then the dedicated mobile adaptation. */
+@media (max-width:1080px){
+  .sec-head,.comp,.cta__in{grid-template-columns:1fr}
+  /* One column: the wave now runs the full width of the page, so it is given
+     more height — two humps stretched across 940px at the desktop height are a
+     ripple, not a wave. */
+  .cta__wave{height:clamp(84px,9.5vw,120px)}
+  .term{transform:none}
+  .hero{padding-top:320px}
+  /* Four columns instead of six: the flagship takes the full width, the two
+     tall cases keep their two, and the strip closes the row. The bento keeps
+     its shape — only the grain gets coarser. */
+  .wgrid{grid-template-columns:repeat(4,1fr);gap:clamp(16px,2vw,24px)}
+  .proj--hero,.proj--wide{grid-column:span 4}
+  .card--w,.card--t{grid-column:span 3}
+  .card--f{grid-column:span 6}
+}
+@media (max-width:720px){
+  .grid{grid-template-columns:1fr}
+  .card--w,.card--t,.card--f{grid-column:span 1}
+  .wgrid{grid-template-columns:repeat(2,1fr);grid-auto-rows:minmax(172px,auto)}
+  .proj--hero,.proj--wide{grid-column:span 2}
+  .proj--tall{grid-column:span 1;grid-row:span 2}
+  .proj--sm{grid-column:span 1}
+  .row{grid-template-columns:1fr}
+  .hero{min-height:auto;padding-top:310px}
+  .mb__lid{padding:8px 8px 10px;border-radius:15px 15px 5px 5px}
+  .mb__bez{padding:14px 4px 5px;border-radius:8px}
+  .mb__notch{width:104px;height:14px}
+  .mb__base{width:calc(100% + 14px);height:11px}
+  .mb__base::after{width:20%;height:6px}
+  .mb__shadow{height:16px}
+  .mb{width:min(100%,calc((88svh - 180px) * 1.6))}
+  .chr{height:31px;gap:9px;padding:0 9px}
+  .chr__url{font-size:10.5px;height:22px;padding-left:26px}
+  .pv__top h3{font-size:17px}
+  .term__body{--rows:15;--fz:13px}
+  .card--q{flex-direction:column;align-items:flex-start;gap:14px}
+}
+/* ============ MOBILE ADAPTATION ============
+   The row of links is replaced by a panel behind the burger. Everything the
+   panel needs lives in this one block: it used to be spread over three
+   overlapping media queries, where the later ones quietly overrode most of
+   what the earlier ones declared. */
+@media (max-width:900px){
+  /* On a phone the bar is chrome from the first pixel: there is no hero to be
+     generous over, so the wash is on from the start and the scroll only tightens
+     the height. */
+  .head{--head-h:60px;--head-wash:1}
+  .head.stuck{--head-h:56px}
+  .logo{font-size:17px}
+
+  /* THE ROW HAS TWO TRACKS HERE, NOT THREE.
+     ------------------------------------------------------------------------
+     This is the fix for the control cluster that was landing in the middle of
+     the bar with the whole right end of the capsule left empty.
+
+     The desktop bar is `auto 1fr auto` - mark, links, actions. At this width
+     the links stop being a row and become a panel, and a panel is
+     `position:absolute`, which takes it out of the grid's flow entirely. Grid
+     was then placing two in-flow children into a three-track template: the
+     actions took track 2 - the `1fr` one - and track 3 resolved to 0px hard
+     against the right edge. Measured at 390px: the cluster sat at x=155 in a
+     358px content box and stopped at 333, leaving 25px of dead capsule after
+     it. That is the drift in the screenshots, and it was never a margin
+     problem, so no amount of `margin-left:auto` would have held it.
+
+     Two tracks, and the flexible one is the one the actions sit in, so they
+     are carried to the far end by the track itself. `justify-self:end` is what
+     puts them against its trailing edge rather than stretching them across it.
+     Both are needed - the track without the alignment is a wide box with the
+     controls at its left, which is exactly the bug being fixed. */
+  .head__in{grid-template-columns:auto 1fr;gap:12px}
+  .head__act{justify-self:end;padding-left:0;border-left:0;gap:10px}
+
+  .head .btn{display:none}
+  .burger{display:grid;flex:none}
+
+  /* --- the panel ---------------------------------------------------------
+     Not `display:none` → `display:flex`: a display change cannot be animated,
+     which is exactly why the old panel appeared instantly and felt like a
+     browser context menu. The panel is always laid out and always a flex
+     column; what changes is opacity, a small drop and `visibility` — the last
+     of those is what keeps a closed panel out of the tab order while still
+     being animatable, and it is delayed on the way out so the fade can finish
+     before the panel is taken out of the accessibility tree. */
+  .nav{display:flex;flex-direction:column;align-items:stretch;gap:2px;
+    position:absolute;top:calc(var(--head-h) + 8px);right:var(--gut);left:auto;
+    min-width:min(272px,calc(100vw - 2 * var(--gut)));
+    max-height:calc(100svh - var(--head-h) - 28px);overflow-y:auto;
+    background:var(--surf);border:1px solid var(--line);border-radius:20px;padding:10px;
+    box-shadow:0 26px 54px -26px rgba(var(--sh),.45),inset 0 1px 0 var(--gloss);
+    opacity:0;visibility:hidden;pointer-events:none;
+    transform:translateY(-10px) scale(.97);transform-origin:100% 0;
+    transition:opacity var(--t-f) var(--e-out),
+               transform var(--t-m) var(--e-drawer),
+               visibility 0s linear var(--t-m)}
+  .nav.open{opacity:1;visibility:visible;pointer-events:auto;
+    transform:none;transition-delay:0s,0s,0s}
+
+  /* Stretched rather than shrink-wrapped: centred labels of different lengths
+     leave a ragged column, and each tap target would be only as wide as its own
+     word. Full-width rows with 15px of vertical padding clear the 44px minimum
+     in both directions, and the labels line up on one left edge. */
+  .nav a{padding:15px 16px;font-size:15.5px;color:var(--ink);
+    border-radius:13px;text-align:left;
+    transition:background var(--t-press) var(--e-out),color var(--t-f) var(--e-out)}
+  /* The desktop underscore is a horizontal instrument and does not survive a
+     vertical stack — in the panel the current section is marked by a lit face
+     and a stroke down its leading edge, which is the same idea rotated. */
+  .nav a::after{left:0;right:auto;top:8px;bottom:8px;width:2px;height:auto;
+    border-radius:2px;transform:scaleY(0);transform-origin:50% 0;
+    background:linear-gradient(180deg,var(--c-sky),var(--c-blue) 56%,var(--c-violet));
+    transition:transform var(--t-f) var(--e-out),opacity var(--t-f) var(--e-out)}
+  .nav a[aria-current="true"]{background:var(--surf-2)}
+  .nav a[aria-current="true"]::after{transform:scaleY(1);box-shadow:none}
+  /* Touch has no hover, so the row answers the press instead. */
+  .nav a:active{background:var(--surf-3)}
+
+  /* The header's primary action, restored inside the panel: full width, because
+     it is the one thing the page is asking for, and held off the links by a
+     hairline because it is a different kind of thing from them. */
+  /* Two class names, matching the desktop guard in header.css — that guard has
+     to be `.nav .nav__cta` to outrank `.btn`'s own display, so switching the
+     action back on here needs the same weight or it silently loses. */
+  .nav .nav__cta{display:flex;justify-content:center;margin-top:9px}
+
+  /* The switch keeps its 58×32 drawing, but on touch the input — which is the
+     element that actually receives the tap — is grown past it to the 44px
+     minimum. Growing the visible track instead would make it the heaviest
+     object in the bar. */
+  .tsw input{height:44px;min-height:44px;width:58px;min-width:58px}
+  .nav__cta::before{content:"";position:absolute;left:-10px;right:-10px;top:-6px;
+    height:1px;background:var(--line)}
+  .nav .nav__cta::after{display:none}
+}
+@media (max-width:760px){
+  /* The page rhythm is two tokens, so a phone overrides those two rather than
+     re-declaring padding on every section. */
+  :root{--gut:20px;--sec-y:44px;--head-y:22px}
+  h1{font-size:clamp(30px,8.4vw,40px)}
+  h2{font-size:clamp(26px,6.6vw,34px)}
+  h3{font-size:18px}
+  .sec-head{gap:14px}
+  .sec-head p{font-size:15.5px;max-width:none}
+
+  /* hero */
+  .hero{min-height:auto;padding-top:104px;padding-bottom:56px}
+  .hero__col{max-width:none}
+  .hero__lead{font-size:16px;max-width:none;margin-bottom:26px}
+  .hero__cta{flex-direction:column;align-items:stretch;gap:12px}
+  .hero__cta .btn{width:100%}
+
+  /* competencies + terminal */
+  .comp{gap:32px}
+  .comp__lead,.cta p.lead{max-width:none;margin:16px 0 22px}
+  .clist{gap:14px}
+  .clist li{font-size:15px}
+  .term{transform:none;border-radius:14px}
+  .term:hover{transform:none}
+  .term__bar{padding:9px 10px;gap:8px}
+  /* At this width the traffic-light dots are pure decoration competing with
+     the tab strip for the only space that carries meaning. */
+  .term__bar .dots{display:none}
+  /* A mask here was tempting but it promotes the strip to its own layer and
+     repaints it on every scroll frame: measured -7fps on a throttled phone.
+     The clipped tab edge already reads as "scrollable". */
+  .term__tabs{margin-right:2px}
+  .dots i{width:9px;height:9px}
+  .term__body{--rows:14;--fz:11.5px;--lh:1.55}
+  .term__gutter{width:34px;padding:14px 0 14px 12px}
+  .term__code{padding:14px 14px 14px 12px}
+  /* The drawn control keeps the size the bar wants; the target a finger has
+     to find is expanded past it in the phone pass below. */
+  .copy{width:40px;height:40px;border-radius:12px}
+  .copy svg{flex:none;width:16px;height:16px}
+
+  /* services */
+  .grid{gap:14px}
+  .card{padding:22px;border-radius:18px}
+  .card:hover{transform:none;box-shadow:none;border-color:var(--line)}
+  .card--q{gap:12px}
+  .card--q p{font-size:19px;max-width:none}
+
+  /* process
+     The composition has already turned vertical at 940px, so all that is left
+     here is type size — the geometry does not need a phone case of its own. */
+  .pstep__t h3{font-size:17px}
+  .pstep__t p{font-size:14px}
+
+  /* portfolio — the grid is handled at 1080 and 720; this is the card */
+  .proj,.proj--hero,.proj--wide{padding:12px;border-radius:16px}
+  .proj:hover{transform:none;box-shadow:inset 0 1px 0 var(--gloss)}
+  .proj__vis,.proj--hero .proj__vis{min-height:104px;padding:8px}
+  .proj__txt{padding:11px 3px 2px}
+  .proj h3,.proj--hero h3{font-size:16px;margin-top:9px}
+  .proj p,.proj--hero p{font-size:13px}
+  .proj__go{margin-top:11px;font-size:13px}
+  .note{font-size:13px}
+
+  /* contacts */
+  .cta__sig{padding-top:26px}
+  .cta__wave{height:66px}
+  .form__seam{left:18px;width:calc(100% - 36px)}
+  .tg{max-width:none;padding:14px 16px;gap:12px}
+  .tg:hover{transform:none;box-shadow:inset 0 1px 0 var(--gloss)}
+  .tg b{font-size:15px}
+  .tg span{font-size:12.5px}
+  .contacts{font-size:13.5px}
+  .form{padding:20px;border-radius:18px;box-shadow:none}
+  .f input,.f textarea{font-size:16px}
+  .f label{font-size:15px}
+  .f textarea{min-height:110px}
+  .form__bot{flex-direction:column;align-items:stretch;gap:12px}
+  .form__bot .btn{width:100%}
+  .form__bot small{max-width:none;font-size:12px}
+
+  /* footer
+     One column, in the order a phone needs: who this is, how to reach them, and
+     only then the list of places the reader has already scrolled past — hence
+     the section list being sent to the end. */
+  .foot{padding:40px 0 18px}
+  .foot__in{grid-template-columns:1fr;gap:30px}
+  .foot__sign{font-size:20px}
+  .foot__sign svg{width:44px;height:44px}
+  .foot__wave{width:min(100%,240px)}
+  .foot__col:last-child{order:-1}
+  .foot__ghost{width:66%;right:-16%;bottom:-10%}
+  .foot__base{flex-direction:column;align-items:flex-start;gap:14px;
+    margin-top:30px;font-size:12.5px}
+
+  /* project preview overlay */
+  .pv{padding:14px;align-content:center}
+  .pv__box{width:100%;max-height:none;gap:12px}
+  .pv__top{gap:12px;align-items:flex-start}
+  .pv__top h3{font-size:16px;line-height:1.2}
+  .pv__top p{font-size:12px;margin-top:4px}
+  .x{width:38px;height:38px}
+  .mb{width:100%}
+  .mb__lid{padding:7px 7px 9px;border-radius:14px 14px 5px 5px}
+  .mb__bez{padding:13px 4px 5px;border-radius:8px}
+  .mb__notch{width:92px;height:13px}
+  .mb__notch i{width:4px;height:4px}
+  .mb__scr{border-radius:5px}
+  .mb__base{width:calc(100% + 12px);height:10px;border-radius:0 0 8px 8px}
+  .mb__base::after{width:22%;height:5px}
+  .mb__shadow{height:14px}
+  .chr{height:28px;gap:8px;padding:0 8px}
+  .chr__nav{display:none}
+  .chr__c i{width:8px;height:8px}
+  .chr__url{height:20px;font-size:10px;padding:0 8px 0 22px}
+  .chr__url svg{left:8px}
+  .mb__ph{font-size:12.5px;padding:16px}
+  .mb__view{--fw:760px}
+}
+/* Below this width two cases side by side are two thumbnails nobody can read,
+   so the bento gives up and becomes a column. Every span is reset — including
+   the row spans, which would otherwise leave holes in a single-column grid. */
+@media (max-width:560px){
+  .wgrid{grid-template-columns:1fr;gap:16px;grid-auto-rows:auto}
+  .proj--hero,.proj--tall,.proj--sm,.proj--wide{grid-column:span 1;grid-row:span 1}
+  .proj--wide{flex-direction:column;gap:0}
+  .proj--wide .proj__vis{flex:1 1 auto;width:100%}
+  .proj--wide .proj__txt{padding:11px 3px 2px}
+  .proj__vis,.proj--hero .proj__vis,.proj--wide .proj__vis{min-height:132px}
+}
+@media (max-width:400px){
+  :root{--gut:16px;--sec-y:38px}
+  .head{padding-left:12px;padding-right:12px}
+  h1{font-size:29px}
+  h2{font-size:25px}
+  .hero{padding-top:96px}
+  .card--q p{font-size:18px}
+  .btn{font-size:13px;padding:1em 1.5em}
+  .term__body{--rows:13;--fz:10.5px}
+}
+
+/* ============ THE PHONE PASS ============
+   Three things a phone needs that none of the blocks above were giving it: a
+   seam scaled to the phone's own rhythm, hit areas big enough for a thumb, and
+   the one browser behaviour that only exists on touch.
+
+   This block is last in the file on purpose. Every rule in it overrides a value
+   set earlier in this same stylesheet or in a component, and the cascade is the
+   only thing keeping them in order — there is deliberately no extra
+   specificity anywhere in it, so anything appended after it wins, which is what
+   you want when adding a phone case for a new component. */
+@media (max-width:900px){
+  /* Touch has no hover. The only thing the OS draws in its place is a grey
+     rectangle over whatever was tapped, which on this page means a hard square
+     flashing over rounded, lit, brand-coloured surfaces. Every interactive
+     object here already answers a press in its own language. */
+  a,button,input,textarea,label,summary{-webkit-tap-highlight-color:transparent}
+
+  /* THE HIT AREAS. Everything listed here is a line of type that is also a
+     link, so on a touch screen it was an 18-23px tall target, half of what a
+     thumb needs. Padding is added rather than height, so the type stays exactly
+     where the layout put it and only the invisible area around it grows; the
+     gap of the column it sits in gives back the same amount, so no block in the
+     footer ends up taller than it was. */
+  .logo{min-height:44px}
+  .foot__nav{gap:0}
+  .foot__nav a{padding:9px 0}
+  .foot__reach{gap:2px}
+  .foot__mail{padding:10px 0 14px}
+  .foot__mail::after{bottom:10px}
+  .foot__tg{padding:9px 0}
+  .foot__up{padding:12px 0}
+  .contacts a{display:inline-block;padding:11px 0}
+  /* The tab strip is the one place where a bigger target also has to stay on a
+     single line, so it grows vertically only. */
+  .tab{padding:13px 11px}
+  /* The copy control is a square, so it is sized rather than padded. It also
+     has to be set here and not in the 760 block below: a tablet is touch too,
+     and at 820px it was falling between the two and keeping the mouse size.
+
+     40px drawn, 44px to hit - see the expander in base/phone.css. Growing the
+     button itself to 44 would grow the bar it sits in, and the bar is chrome:
+     it is supposed to be the least of the panel, not a strip tall enough to
+     hold a full-size action. */
+  .copy{width:40px;height:40px;border-radius:12px}
+}
+@media (max-width:760px){
+  /* THE SEAM ON A PHONE. Its height is clamp(92px,9.5vw,152px), and 9.5vw of a
+     390px screen is 37px, so on every phone it was the desktop floor of 92px
+     that actually applied. That is a band of water twice as tall as the air
+     between two sections (--sec-y is 44px here), which is exactly what makes a
+     seam stop reading as a boundary and start reading as a section of its own.
+     The wave keeps its proportions because its amplitude is a fraction of this
+     height, so all that changes is the scale.
+
+     THE FIRST CORRECTION WENT TOO FAR. clamp(56px,15vw,80px) put a 390px phone
+     on 54.6px, and at that height one cycle of wave has an amplitude of ten
+     pixels to work with while the line drawn on it is two pixels thick. The
+     wave stops being a wave and becomes a thick line with a kink in it - which
+     is most of why the phone seams read as broken rather than as small. The
+     amplitude is a fraction of this height, so height is the one number that
+     buys the curve back.
+
+     19vw here against 15vw before: a 390px phone gets 74px, a 430px phone 82px.
+     Still comfortably under --sec-y x 2, so the seam is still a boundary and
+     not a section, and roughly 55% of the desktop band rather than 40%. Six
+     seams x 20px is 120px added to a 9,500px page - nothing the visitor will
+     ever notice, against a curve that now has room to be one.
+
+     The floor matters more than the ceiling down here: below about 360px the
+     vw term collapses faster than the wave's own proportions do, so 68px holds
+     the band open on the narrowest screens this page will meet. */
+  .wsep{height:clamp(76px,19vw,104px)}
+}
+@media (max-width:400px){
+  .wsep{height:clamp(68px,19vw,84px)}
+}
+
+/* ---- touch targets ---------------------------------------------------------
+   Hit-area corrections. Nothing here changes a single pixel of what you see.
+
+   The audit found controls that are fine under a cursor and too small under a
+   thumb: the theme switch at 58x32, the terminal tabs at 38 tall, the copy
+   button at 40x40. 44px is where Apple's guidance and the WCAG target-size
+   criterion agree, and the number is not arbitrary - it is roughly the contact
+   patch of an adult fingertip. Below it you aim instead of pressing, and having
+   to aim is what makes a site feel fiddly on a phone even when it looks right.
+
+   The first attempt at this used padding, which was wrong and worth recording:
+   with border-box sizing, padding on a fixed-height control is absorbed rather
+   than added, so the switch did not move at all, and on the tabs it *replaced*
+   the padding already there and made them 2px shorter than when I started.
+
+   So the target is extended by a transparent overlay instead. The pseudo
+   element is a child of the control, so a press anywhere on it resolves to the
+   control itself, while the visible box keeps its exact size - the switch keeps
+   its 58x32 track, the tabs keep their proportions. Growth is vertical only
+   where neighbours sit side by side, so no control can steal a press from the
+   one next to it. .copy takes ::before because phone.css already owns its
+   ::after.
+
+   Desktop is excluded on purpose: a cursor is one pixel and needs no help. */
+@media (max-width:900px){
+	.tsw,.copy{position:relative}
+	.tsw::after,
+	.copy::before{
+		content:"";position:absolute;left:50%;top:50%;
+		width:100%;min-width:44px;height:44px;
+		transform:translate(-50%,-50%);
+		pointer-events:auto;
+	}
+	/* The tab strip is the exception, and it is the reason this comment is
+	   long. An overlay cannot help here: .term__tabs scrolls horizontally, so
+	   it clips its own children, and the 2px the overlay reached above and
+	   below the tab were simply cut off - measured as a 74x40 hit area when
+	   the pseudo element itself computed to 44px tall. A target that is
+	   clipped is not a target. So the tabs get real height instead, which
+	   costs the strip 4px and is the honest trade. */
+	.term__tabs .tab{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
+}
